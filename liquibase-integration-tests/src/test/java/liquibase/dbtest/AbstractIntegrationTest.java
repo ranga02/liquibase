@@ -76,7 +76,7 @@ public abstract class AbstractIntegrationTest {
     private String url;
 
     protected AbstractIntegrationTest(String changelogDir, String url) throws Exception {
-        LogFactory.setLoggingLevel("info");
+        LogFactory.setLoggingLevel("debug");
 
         this.completeChangeLog = "changelogs/" + changelogDir + "/complete/root.changelog.xml";
         this.rollbackChangeLog = "changelogs/" + changelogDir + "/rollback/rollbackable.changelog.xml";
@@ -127,17 +127,17 @@ public abstract class AbstractIntegrationTest {
 
             SnapshotGeneratorFactory.resetAll();
             LockService lockService = LockServiceFactory.getInstance().getLockService(database);
-            database.dropDatabaseObjects(CatalogAndSchema.DEFAULT);
+            //database.dropDatabaseObjects(CatalogAndSchema.DEFAULT);
 
             if (database.supportsSchemas()) {
-                database.dropDatabaseObjects(new CatalogAndSchema((String) null, DatabaseTestContext.ALT_SCHEMA));
+                //database.dropDatabaseObjects(new CatalogAndSchema((String) null, DatabaseTestContext.ALT_SCHEMA));
             }
 
             if (supportsAltCatalogTests()) {
                 if (database.supportsSchemas() && database.supportsCatalogs()) {
-                    database.dropDatabaseObjects(new CatalogAndSchema(DatabaseTestContext.ALT_CATALOG, DatabaseTestContext.ALT_SCHEMA));
+                    //database.dropDatabaseObjects(new CatalogAndSchema(DatabaseTestContext.ALT_CATALOG, DatabaseTestContext.ALT_SCHEMA));
                 } else if (database.supportsCatalogs()) {
-                    database.dropDatabaseObjects(new CatalogAndSchema(DatabaseTestContext.ALT_SCHEMA, null));
+                    //database.dropDatabaseObjects(new CatalogAndSchema(DatabaseTestContext.ALT_SCHEMA, null));
                 }
             }
             database.commit();
