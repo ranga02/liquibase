@@ -10,6 +10,8 @@ import liquibase.dbtest.AbstractIntegrationTest;
 import liquibase.resource.ResourceAccessor;
 import liquibase.exception.DatabaseException;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import java.sql.SQLException;
 import java.sql.Driver;
@@ -143,9 +145,9 @@ public class DatabaseTestContext {
     }
 
     public DatabaseConnection openDatabaseConnection(String url) throws Exception {
+
         String username = getUsername(url);
         String password = getPassword(url);
-
 
         JUnitJDBCDriverClassLoader jdbcDriverLoader = JUnitJDBCDriverClassLoader.getInstance();
         final Driver driver;
@@ -178,16 +180,22 @@ public class DatabaseTestContext {
         return new JdbcConnection(connection);
     }
 
+    //@TODO: APPDBD - modified getUsername
     private String getUsername(String url) {
         if (url.startsWith("jdbc:hsqldb")) {
             return "sa";
+        } else if (url.contains("sybase")) {
+            return System.getenv("SYBUSER");
         }
         return "lbuser";
     }
 
+    //@TODO: APPDBD - modified getPassword
     private String getPassword(String url) {
         if (url.startsWith("jdbc:hsqldb")) {
             return "";
+        } else if (url.contains("sybase")) {
+            return System.getenv("SYBPASSWD");
         }
         return "lbuser";
     }
