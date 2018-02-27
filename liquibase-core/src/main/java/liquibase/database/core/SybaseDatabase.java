@@ -125,7 +125,9 @@ public class SybaseDatabase extends AbstractJdbcDatabase {
     @Override
     public String getDefaultDriver(String url) {
         if (url.startsWith("jdbc:sybase")) {
-            return "com.sybase.jdbc3.jdbc.SybDriver";
+            //@TODO APPDBD - change jconnect driver to jdbc4 from jdbc3
+            //return "com.sybase.jdbc3.jdbc.SybDriver";
+            return "com.sybase.jdbc4.jdbc.SybDriver";
         } else if (url.startsWith("jdbc:jtds:sybase")) {
             return "net.sourceforge.jtds.jdbc.Driver";
         }
