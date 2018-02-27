@@ -6,6 +6,7 @@ import liquibase.RuntimeEnvironment;
 import liquibase.changelog.filter.*;
 import liquibase.changelog.visitor.SkippedChangeSetVisitor;
 import liquibase.changelog.visitor.ChangeSetVisitor;
+import liquibase.changelog.visitor.UpdateVisitor;
 import liquibase.database.Database;
 import liquibase.exception.LiquibaseException;
 import liquibase.logging.LogFactory;
