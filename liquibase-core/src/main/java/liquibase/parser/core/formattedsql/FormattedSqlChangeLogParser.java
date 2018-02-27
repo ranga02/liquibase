@@ -154,10 +154,15 @@ public class FormattedSqlChangeLogParser implements ChangeLogParser {
                     boolean stripComments = parseBoolean(stripCommentsPatternMatcher, changeSet, true);
                     boolean splitStatements = parseBoolean(splitStatementsPatternMatcher, changeSet, true);
                     rollbackSplitStatements = parseBoolean(rollbackSplitStatementsPatternMatcher, changeSet, true);
-                    boolean runOnChange = parseBoolean(runOnChangePatternMatcher, changeSet, false);
+                    //@TODO : APPDBD - modified runOnChange default to true
+                    //boolean runOnChange = parseBoolean(runOnChangePatternMatcher, changeSet, false);
+                    boolean runOnChange = parseBoolean(runOnChangePatternMatcher, changeSet, true);
+
                     boolean runAlways = parseBoolean(runAlwaysPatternMatcher, changeSet, false);
                     boolean runInTransaction = parseBoolean(runInTransactionPatternMatcher, changeSet, true);
-                    boolean failOnError = parseBoolean(failOnErrorPatternMatcher, changeSet, true);
+                    //@TODO : APPDBD - modified failOnError default to false
+                    //boolean failOnError = parseBoolean(failOnErrorPatternMatcher, changeSet, true);
+                    boolean failOnError = parseBoolean(failOnErrorPatternMatcher, changeSet, false);
 
                     String endDelimiter = parseString(endDelimiterPatternMatcher);
                     rollbackEndDelimiter = parseString(rollbackEndDelimiterPatternMatcher);

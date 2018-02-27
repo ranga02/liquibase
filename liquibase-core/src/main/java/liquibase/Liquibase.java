@@ -221,6 +221,9 @@ public class Liquibase {
             }
             resetServices();
         }
+        if (hasAtLeastOneTestFailed()) {
+            throw new LiquibaseException("At least one test has failed.  Please check logs");
+        }
     }
 
     public DatabaseChangeLog getDatabaseChangeLog() throws LiquibaseException {
@@ -365,6 +368,17 @@ public class Liquibase {
             }
             resetServices();
         }
+    }
+
+    //@TODO APPDBD
+    public boolean hasAtLeastOneTestFailed() throws DatabaseException {
+        List<RanChangeSet> ranChangeSetList = database.getRanChangeSetList();
+        for (RanChangeSet cs: ranChangeSetList) {
+            if (cs.getExecType() == ChangeSet.ExecType.FAILED) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void update(int changesToApply, String contexts, Writer output) throws LiquibaseException {

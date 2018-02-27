@@ -1,5 +1,8 @@
 package liquibase.executor.jvm;
 
+import liquibase.logging.LogFactory;
+import liquibase.logging.Logger;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -40,7 +43,7 @@ public class RowMapperResultSetExtractor implements ResultSetExtractor {
     private final RowMapper rowMapper;
 
     private final int rowsExpected;
-
+    private Logger log = LogFactory.getLogger();
 
     /**
      * Create a new RowMapperResultSetExtractor.
@@ -71,6 +74,7 @@ public class RowMapperResultSetExtractor implements ResultSetExtractor {
         while (rs.next()) {
             results.add(this.rowMapper.mapRow(rs, rowNum++));
         }
+        log.info(rowNum + " row(s) affected");
         return results;
     }
 
