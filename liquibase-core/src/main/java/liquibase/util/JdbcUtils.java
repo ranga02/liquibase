@@ -2,6 +2,8 @@ package liquibase.util;
 
 import liquibase.database.Database;
 import liquibase.exception.DatabaseException;
+import liquibase.logging.LogFactory;
+import liquibase.logging.Logger;
 import liquibase.structure.core.Column;
 
 import java.sql.*;
@@ -15,6 +17,7 @@ public abstract class JdbcUtils {
      * @see java.sql.Types
      */
     public static final int TYPE_UNKNOWN = Integer.MIN_VALUE;
+    public static final Logger log = LogFactory.getLogger();
 
     /**
      * Close the given JDBC Statement and ignore any thrown exception.
@@ -171,5 +174,75 @@ public abstract class JdbcUtils {
         return null;
     }
 
+    //@TODO : APPDBD - processResults
+    public static void processResults(Statement stmt, String sql) throws SQLException {
+        boolean isResultset = false;
+
+        if (stmt instanceof PreparedStatement) {
+            PreparedStatement ps = (PreparedStatement) stmt;
+            isResultset = ps.execute();
+        } else {
+            isResultset = stmt.execute(sql);
+        }
+
+        printWarnings(stmt.getWarnings());
+        stmt.clearWarnings();
+        ResultSet rs = null;
+
+        while (true) {
+            if (isResultset) {
+                rs = stmt.getResultSet();
+                printRows(rs);
+                rs.close();
+            } else {
+                int i = stmt.getUpdateCount();
+                if (i == -1) {
+                    break;
+                }
+                log.info(i + " row(s) affected");
+            }
+            isResultset = stmt.getMoreResults();
+            printWarnings(stmt.getWarnings());
+            stmt.clearWarnings();
+        }
+    }
+
+    //@TODO : APPDBD - printRows
+    public static void printRows(ResultSet rs) throws SQLException {
+        ResultSetMetaData rsm = rs.getMetaData();
+        int columnCount = rsm.getColumnCount();
+        String row = System.lineSeparator();
+        int numRows = 0;
+
+        for (int i = 1; i <= columnCount; ++i) {
+            row += (rsm.getColumnName(i) + "\t");
+        }
+
+        while (rs.next()) {
+            row += System.lineSeparator();
+            for (int i = 1; i <= columnCount; ++i) {
+                row += rs.getString(i) + "\t";
+            }
+            ++numRows;
+        }
+        log.info(row);
+        log.info(numRows + " row(s) affected");
+    }
+
+    //@TODO : APPDBD - printWarnings
+    public static void printWarnings(SQLWarning warn) throws SQLException {
+        while (warn != null) {
+            if (warn.getErrorCode() == 0 && warn.getSQLState() == null) {
+                log.info(warn.getMessage());
+            } else {
+                log.info("\n***** Sybase Message *****" + System.lineSeparator()
+                        + "Code:   " + warn.getErrorCode() + System.lineSeparator()
+                        + "Message:  " + warn.getMessage() + System.lineSeparator()
+                        + "SQLState: " + warn.getSQLState());
+            }
+            warn = warn.getNextWarning();
+        }
+
+    }
 
 }
