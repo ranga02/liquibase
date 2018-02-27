@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -82,7 +83,9 @@ public abstract class ExecutablePreparedStatementBase implements ExecutablePrepa
 	            i++;
 	        }
 	        // trigger execution
-	        stmt.execute();
+			//@TODO: APPDBD - extract result set
+//	        stmt.execute();
+			JdbcUtils.processResults(stmt, sql);
 	    } catch(SQLException e) {
 	        throw new DatabaseException(e);
 	    } finally {
