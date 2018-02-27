@@ -1,6 +1,13 @@
 Liquibase Core Changelog
 ===========================================
 
+Changes in version 3.5.4.1 (2018.02.22)
+
+- Changed default of failOnError to false in FormattedSqlChangeLogParser.java
+- Log sql output in files JdbcExecutor.java, ExecutePreparedStatementBase.java, JdbcUtils.java
+- Change jconnect driver to jconnect-7
+
+
 Changes in version 3.5.5 (2018.02.5)
 
 -  [CORE-2851] - includeAll tag with a relative path duplicates the database changes with an absolute and with a relative changelog
