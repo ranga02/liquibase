@@ -125,7 +125,7 @@ public class SybaseDatabase extends AbstractJdbcDatabase {
     @Override
     public String getDefaultDriver(String url) {
         if (url.startsWith("jdbc:sybase")) {
-            //@TODO APPDBD - change jconnect driver to jdbc4 from jdbc3
+            //@TODO : APPDBD - change to jconnect-7
             //return "com.sybase.jdbc3.jdbc.SybDriver";
             return "com.sybase.jdbc4.jdbc.SybDriver";
         } else if (url.startsWith("jdbc:jtds:sybase")) {
@@ -149,8 +149,8 @@ public class SybaseDatabase extends AbstractJdbcDatabase {
 	protected boolean generateAutoIncrementBy(BigInteger incrementBy) {
 		// not supported
 		return false;
-	}    
-    
+	}
+
     @Override
     public String getConcatSql(String... values) {
         StringBuffer returnString = new StringBuffer();
@@ -306,4 +306,11 @@ public class SybaseDatabase extends AbstractJdbcDatabase {
         }
         return this.quotingStartCharacter+objectName+this.quotingEndCharacter;
     }
+
+    //@TODO : APPDBD - enable this as sybase supports this feature
+    @Override
+    public boolean supportsCatalogInObjectName(final Class<? extends DatabaseObject> type) {
+        return true;
+    }
+
 }
