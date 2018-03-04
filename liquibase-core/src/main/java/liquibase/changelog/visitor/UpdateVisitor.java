@@ -22,6 +22,9 @@ public class UpdateVisitor implements ChangeSetVisitor {
     
     private ChangeExecListener execListener;
 
+    //@TODO : APPDBD - capture any failures in the changeSet
+    private boolean hasAFailure = false;
+
     /**
      * @deprecated - please use the constructor with ChangeExecListener, which can be null.
      */
@@ -53,6 +56,12 @@ public class UpdateVisitor implements ChangeSetVisitor {
             fireRunFailed(changeSet, databaseChangeLog, database, e);
             throw e;
         }
+
+        //@TODO : APPDBD - record any failures in the changeset
+        if (execType == ExecType.FAILED) {
+            hasAFailure = true;
+        }
+
         if (!runStatus.equals(ChangeSet.RunStatus.NOT_RAN)) {
             execType = ChangeSet.ExecType.RERAN;
         }
@@ -80,5 +89,10 @@ public class UpdateVisitor implements ChangeSetVisitor {
       if (execListener != null) {
         execListener.ran(changeSet, databaseChangeLog, database, execType);
       }
+    }
+
+    //@TODO : APPDBD - return failure status of changeset
+    public boolean hasAFailure() {
+        return hasAFailure;
     }
 }
