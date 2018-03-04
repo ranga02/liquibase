@@ -174,6 +174,13 @@ public abstract class JdbcUtils {
         return null;
     }
 
+
+    /**
+     * Walkthrough and process the result sets
+     * @param stmt the statement object
+     * @param sql the SQL string
+     * @throws SQLException
+     */
     //@TODO : APPDBD - processResults
     public static void processResults(Statement stmt, String sql) throws SQLException {
         boolean isResultset = false;
@@ -207,6 +214,11 @@ public abstract class JdbcUtils {
         }
     }
 
+    /**
+     * Print the result set data with headers
+     * @param rs ResultSet
+     * @throws SQLException
+     */
     //@TODO : APPDBD - printRows
     public static void printRows(ResultSet rs) throws SQLException {
         ResultSetMetaData rsm = rs.getMetaData();
@@ -229,20 +241,24 @@ public abstract class JdbcUtils {
         log.info(numRows + " row(s) affected");
     }
 
+    /**
+     * print database warnings/errors
+     * @param warn SQLWarning object
+     * @throws SQLException
+     */
     //@TODO : APPDBD - printWarnings
     public static void printWarnings(SQLWarning warn) throws SQLException {
         while (warn != null) {
             if (warn.getErrorCode() == 0 && warn.getSQLState() == null) {
-                log.info(warn.getMessage());
+                log.info(System.lineSeparator() + warn.getMessage());
             } else {
-                log.info("\n***** Sybase Message *****" + System.lineSeparator()
+                log.info("\n***** Databsae Message *****" + System.lineSeparator()
                         + "Code:   " + warn.getErrorCode() + System.lineSeparator()
                         + "Message:  " + warn.getMessage() + System.lineSeparator()
                         + "SQLState: " + warn.getSQLState());
             }
             warn = warn.getNextWarning();
         }
-
     }
 
 }
