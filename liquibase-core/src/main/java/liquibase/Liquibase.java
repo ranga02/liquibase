@@ -191,9 +191,12 @@ public class Liquibase {
     public void update(Contexts contexts, LabelExpression labelExpression) throws LiquibaseException {
     	update(contexts, labelExpression, true);
     }
+
+    //@TODO : APPDBD - modified to check and throw if any test fail
     public void update(Contexts contexts, LabelExpression labelExpression, boolean checkLiquibaseTables) throws LiquibaseException {
         LockService lockService = LockServiceFactory.getInstance().getLockService(database);
         lockService.waitForLock();
+        UpdateVisitor  updateVisitor = null;
 
         changeLogParameters.setContexts(contexts);
         changeLogParameters.setLabels(labelExpression);
@@ -211,7 +214,9 @@ public class Liquibase {
 
             ChangeLogIterator changeLogIterator = getStandardChangelogIterator(contexts, labelExpression, changeLog);
 
-            changeLogIterator.run(createUpdateVisitor(), new RuntimeEnvironment(database, contexts, labelExpression));
+            //changeLogIterator.run(createUpdateVisitor(), new RuntimeEnvironment(database, contexts, labelExpression));
+            updateVisitor = createUpdateVisitor();
+            changeLogIterator.run(updateVisitor, new RuntimeEnvironment(database, contexts, labelExpression));
         } finally {
             database.setObjectQuotingStrategy(ObjectQuotingStrategy.LEGACY);
             try {
@@ -221,7 +226,8 @@ public class Liquibase {
             }
             resetServices();
         }
-        if (hasAtLeastOneTestFailed()) {
+
+        if (updateVisitor != null && updateVisitor.hasAFailure()) {
             throw new LiquibaseException("At least one test has failed.  Please check logs");
         }
     }
@@ -368,17 +374,6 @@ public class Liquibase {
             }
             resetServices();
         }
-    }
-
-    //@TODO APPDBD
-    public boolean hasAtLeastOneTestFailed() throws DatabaseException {
-        List<RanChangeSet> ranChangeSetList = database.getRanChangeSetList();
-        for (RanChangeSet cs: ranChangeSetList) {
-            if (cs.getExecType() == ChangeSet.ExecType.FAILED) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public void update(int changesToApply, String contexts, Writer output) throws LiquibaseException {
