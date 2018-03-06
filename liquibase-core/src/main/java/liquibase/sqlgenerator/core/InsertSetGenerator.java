@@ -1,5 +1,8 @@
 package liquibase.sqlgenerator.core;
 
+import java.util.ArrayList;
+import java.util.SortedSet;
+
 import liquibase.database.Database;
 import liquibase.exception.ValidationErrors;
 import liquibase.sql.Sql;
@@ -12,9 +15,6 @@ import liquibase.statement.core.InsertStatement;
 import liquibase.structure.core.Relation;
 import liquibase.structure.core.Table;
 
-import java.util.ArrayList;
-import java.util.SortedSet;
-
 public class InsertSetGenerator extends AbstractSqlGenerator<InsertSetStatement> {
 
     @Override
@@ -22,6 +22,12 @@ public class InsertSetGenerator extends AbstractSqlGenerator<InsertSetStatement>
         ValidationErrors validationErrors = new ValidationErrors();
         validationErrors.checkRequiredField("tableName", insertStatementSet.peek().getTableName());
         validationErrors.checkRequiredField("columns", insertStatementSet.peek().getColumnValues());
+
+//      it is an error if any of the individual statements have a different table,schema, or catalog.
+
+//        if (insertStatement.getSchemaName() != null && !database.supportsSchemas()) {
+//           validationErrors.addError("Database does not support schemas");
+//       }
 
         return validationErrors;
     }
@@ -35,7 +41,7 @@ public class InsertSetGenerator extends AbstractSqlGenerator<InsertSetStatement>
 		StringBuffer sql = new StringBuffer();
 		generateHeader(sql, statement, database);
 
-		ArrayList<Sql> result = new ArrayList<>();
+		ArrayList<Sql> result = new ArrayList<Sql>();
 		int index = 0;
 		for (InsertStatement sttmnt : statement.getStatements()) {
 			index++;
@@ -69,7 +75,7 @@ public class InsertSetGenerator extends AbstractSqlGenerator<InsertSetStatement>
 
 	protected InsertGenerator getInsertGenerator(Database database) {
 		SortedSet<SqlGenerator> generators = SqlGeneratorFactory.getInstance().getGenerators(new InsertStatement(null, null, null), database);
-		if ((generators == null) || generators.isEmpty()) {
+		if (generators == null || generators.size() == 0) {
 			return null;
 		}
 		return (InsertGenerator) generators.iterator().next();

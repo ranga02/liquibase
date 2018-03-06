@@ -15,11 +15,6 @@ public class SequenceNextValueFunction extends DatabaseFunction {
         super(sequenceName);
     }
 
-    public SequenceNextValueFunction(String sequenceName, String sequenceSchemaName) {
-        super(sequenceName);
-        setSequenceSchemaName(sequenceSchemaName);
-    }
-
     public String getSequenceSchemaName() {
         return sequenceSchemaName;
     }

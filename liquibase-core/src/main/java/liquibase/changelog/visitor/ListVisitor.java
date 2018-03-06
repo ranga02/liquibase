@@ -6,13 +6,11 @@ import liquibase.changelog.filter.ChangeSetFilterResult;
 import liquibase.database.Database;
 import liquibase.exception.LiquibaseException;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class ListVisitor implements ChangeSetVisitor {
 
-    private List<ChangeSet> seenChangeSets = new ArrayList<>();
+    private List<ChangeSet> seenChangeSets = new ArrayList<ChangeSet>();
 
     public List<ChangeSet> getSeenChangeSets() {
         return seenChangeSets;

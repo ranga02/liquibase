@@ -1,16 +1,12 @@
 package liquibase.exception;
 
 import liquibase.changelog.DatabaseChangeLog;
-import liquibase.precondition.ErrorPrecondition;
 import liquibase.precondition.Precondition;
+import liquibase.precondition.ErrorPrecondition;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Thrown when a problem occurs in the evaluation of a precondition (which, under normal circumstances, should never
- * happen).
- */
 public class PreconditionErrorException extends Exception {
 
     private static final long serialVersionUID = 1L;
@@ -27,7 +23,7 @@ public class PreconditionErrorException extends Exception {
 
     public PreconditionErrorException(ErrorPrecondition errorPrecondition) {
         super("Precondition Error", errorPrecondition.getCause());
-        this.erroredPreconditions = new ArrayList<>();
+        this.erroredPreconditions = new ArrayList<ErrorPrecondition>();
         erroredPreconditions.add(errorPrecondition);
     }
 

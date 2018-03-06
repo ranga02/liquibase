@@ -2,10 +2,7 @@ package liquibase.configuration;
 
 import liquibase.exception.UnexpectedLiquibaseException;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Base class for configuration classes used by {@link liquibase.configuration.LiquibaseConfiguration}.
@@ -44,7 +41,7 @@ public abstract class AbstractConfigurationContainer implements ConfigurationCon
      */
     @Override
     public Set<ConfigurationProperty> getProperties() {
-        return new HashSet<>(getContainer().properties.values());
+        return new HashSet<ConfigurationProperty>(getContainer().properties.values());
     }
 
     /**
@@ -82,7 +79,7 @@ public abstract class AbstractConfigurationContainer implements ConfigurationCon
     protected static class ConfigurationContainer {
 
         private final String namespace;
-        private final Map<String, ConfigurationProperty> properties = new HashMap<>();
+        private final Map<String, ConfigurationProperty> properties = new HashMap<String, ConfigurationProperty>();
 
         protected ConfigurationContainer(String namespace) {
             this.namespace = namespace;

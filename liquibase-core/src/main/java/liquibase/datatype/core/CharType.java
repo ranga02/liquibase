@@ -1,6 +1,8 @@
 package liquibase.datatype.core;
 
-import liquibase.change.core.LoadDataChange;
+import java.math.BigInteger;
+import java.util.Arrays;
+
 import liquibase.database.Database;
 import liquibase.database.core.MSSQLDatabase;
 import liquibase.database.core.PostgresDatabase;
@@ -10,9 +12,6 @@ import liquibase.datatype.LiquibaseDataType;
 import liquibase.statement.DatabaseFunction;
 import liquibase.util.StringUtils;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-
 @DataTypeInfo(name="char", aliases = {"java.sql.Types.CHAR", "bpchar"}, minParameters = 0, maxParameters = 1, priority = LiquibaseDataType.PRIORITY_DEFAULT)
 public class CharType extends LiquibaseDataType {
     @Override
@@ -21,7 +20,8 @@ public class CharType extends LiquibaseDataType {
             Object[] parameters = getParameters();
             if (parameters.length > 0) {
                 String param1 = parameters[0].toString();
-                if (!param1.matches("\\d+") || (new BigInteger(param1).compareTo(BigInteger.valueOf(8000)) > 0)) {
+                if (!param1.matches("\\d+")
+                        || new BigInteger(param1).compareTo(BigInteger.valueOf(8000)) > 0) {
 
                     DatabaseDataType type = new DatabaseDataType(database.escapeDataTypeName("char"), 8000);
                     type.addAdditionalInformation(getAdditionalInformation());
@@ -37,8 +37,7 @@ public class CharType extends LiquibaseDataType {
             type.addAdditionalInformation(getAdditionalInformation());
             return type;
         } else if (database instanceof PostgresDatabase){
-            if ((getParameters() != null) && (getParameters().length == 1) && "2147483647".equals(getParameters()[0]
-                .toString())) {
+            if (getParameters() != null && getParameters().length == 1 && getParameters()[0].toString().equals("2147483647")) {
                 DatabaseDataType type = new DatabaseDataType("CHARACTER");
                 type.addAdditionalInformation("VARYING");
                 return type;
@@ -51,7 +50,7 @@ public class CharType extends LiquibaseDataType {
 
     @Override
     public String objectToSql(Object value, Database database) {
-        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
+        if (value == null || value.toString().equalsIgnoreCase("null")) {
             return null;
         }
 
@@ -60,7 +59,7 @@ public class CharType extends LiquibaseDataType {
         }
 
         String val = String.valueOf(value);
-        if ((database instanceof MSSQLDatabase) && !StringUtils.isAscii(val)) {
+        if (database instanceof MSSQLDatabase && !StringUtils.isAscii(val)) {
             return "N'"+database.escapeStringForDatabase(val)+"'";
         }
 
@@ -86,9 +85,5 @@ public class CharType extends LiquibaseDataType {
         return -1;
     }
 
-    @Override
-    public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
-        return LoadDataChange.LOAD_DATA_TYPE.STRING;
-    }
 
 }

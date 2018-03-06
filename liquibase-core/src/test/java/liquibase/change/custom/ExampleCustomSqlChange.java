@@ -12,22 +12,13 @@ import liquibase.structure.core.Table;
 
 public class ExampleCustomSqlChange implements CustomSqlChange, CustomSqlRollback {
 
-    private String schemaName;
     private String tableName;
     private String columnName;
     private String newValue;
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"UnusedDeclaration", "FieldCanBeLocal"})
     private ResourceAccessor resourceAccessor;
 
-
-    public String getSchemaName() {
-        return schemaName;
-    }
-
-    public void setSchemaName(String schemaName) {
-        this.schemaName = schemaName;
-    }
 
     public String getTableName() {
         return tableName;
@@ -56,16 +47,16 @@ public class ExampleCustomSqlChange implements CustomSqlChange, CustomSqlRollbac
     @Override
     public SqlStatement[] generateStatements(Database database) {
         return new SqlStatement[]{
-                new RawSqlStatement("UPDATE "+database.escapeObjectName(null, schemaName, tableName, Table.class)
-                        +" SET "+database.escapeObjectName(columnName, Column.class)+" = "+newValue)
+                new RawSqlStatement("update "+database.escapeObjectName(tableName, Table.class)
+                        +" set "+database.escapeObjectName(columnName, Column.class)+" = "+newValue)
         };
     }
 
     @Override
     public SqlStatement[] generateRollbackStatements(Database database) throws RollbackImpossibleException {
         return new SqlStatement[]{
-                new RawSqlStatement("UPDATE "+database.escapeObjectName(null, schemaName, tableName, Table.class)
-                        +" SET "+database.escapeObjectName(columnName, Column.class)+" = NULL")
+                new RawSqlStatement("update "+database.correctObjectName(tableName, Table.class)
+                        +" set "+database.escapeObjectName(columnName, Column.class)+" = null")
         };
     }
 

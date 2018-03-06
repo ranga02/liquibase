@@ -2,18 +2,17 @@ package liquibase.sqlgenerator.core;
 
 import liquibase.change.ColumnConfig;
 import liquibase.database.Database;
-import liquibase.database.core.MySQLDatabase;
-import liquibase.database.core.OracleDatabase;
-import liquibase.database.core.SQLiteDatabase;
-import liquibase.database.core.SybaseASADatabase;
+import liquibase.database.core.*;
 import liquibase.exception.ValidationErrors;
 import liquibase.sql.Sql;
 import liquibase.sql.UnparsedSql;
+import liquibase.sqlgenerator.SqlGenerator;
 import liquibase.sqlgenerator.SqlGeneratorChain;
 import liquibase.statement.core.DropUniqueConstraintStatement;
 import liquibase.structure.core.Column;
 import liquibase.structure.core.Table;
 import liquibase.structure.core.UniqueConstraint;
+import liquibase.util.StringUtils;
 
 public class DropUniqueConstraintGenerator extends AbstractSqlGenerator<DropUniqueConstraintStatement> {
 
@@ -38,11 +37,12 @@ public class DropUniqueConstraintGenerator extends AbstractSqlGenerator<DropUniq
         } else if (database instanceof OracleDatabase) {
             sql = "ALTER TABLE " + database.escapeTableName(statement.getCatalogName(), statement.getSchemaName(), statement.getTableName()) + " DROP CONSTRAINT " + database.escapeConstraintName(statement.getConstraintName()) + " DROP INDEX";
         } else if (database instanceof SybaseASADatabase) {
-            // Syntax is pretty regular, according to:
-            // https://help.sap.com/viewer/40c01c3500744c85a02db71276495de5/17.0/en-US/8169d7966ce2101497b5ac611f7413ce.html
-            sql = "ALTER TABLE "
-                    + database.escapeTableName(statement.getCatalogName(), statement.getSchemaName(), statement.getTableName())
-                    + " DROP CONSTRAINT " + database.escapeConstraintName(statement.getConstraintName());
+            sql = "ALTER TABLE " + database.escapeTableName(statement.getCatalogName(), statement.getSchemaName(), statement.getTableName()) + " DROP UNIQUE (" + StringUtils.join(statement.getUniqueColumns(), ", ", new StringUtils.StringUtilsFormatter<ColumnConfig>() {
+                @Override
+                public String toString(ColumnConfig obj) {
+                    return obj.getName();
+                }
+            }) + ")";
         } else {
             sql = "ALTER TABLE " + database.escapeTableName(statement.getCatalogName(), statement.getSchemaName(), statement.getTableName()) + " DROP CONSTRAINT " + database.escapeConstraintName(statement.getConstraintName());
         }

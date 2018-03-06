@@ -2,24 +2,18 @@ package liquibase.exception;
 
 import liquibase.changelog.ChangeSet;
 import liquibase.changelog.visitor.ValidatingVisitor;
-import liquibase.logging.LogService;
-import liquibase.logging.LogType;
+import liquibase.database.Database;
+import liquibase.logging.LogFactory;
 import liquibase.precondition.ErrorPrecondition;
 import liquibase.precondition.FailedPrecondition;
 import liquibase.util.StreamUtil;
 
 import java.io.PrintStream;
 import java.util.List;
-import java.util.ResourceBundle;
 import java.util.Set;
 
-import static java.util.ResourceBundle.getBundle;
-
 public class ValidationFailedException extends MigrationFailedException {
-    
-    private static final long serialVersionUID = -6824856974397660436L;
-    public static final String INDENT_SPACES = "     ";
-    private static ResourceBundle coreBundle = getBundle("liquibase/i18n/liquibase-core");
+
     private List<String> invalidMD5Sums;
     private List<FailedPrecondition> failedPreconditions;
     private List<ErrorPrecondition> errorPreconditions;
@@ -27,6 +21,7 @@ public class ValidationFailedException extends MigrationFailedException {
     private List<SetupException> setupExceptions;
     private List<Throwable> changeValidationExceptions;
     private ValidationErrors validationErrors;
+    private Database database;
 
     public ValidationFailedException(ValidatingVisitor changeLogHandler) {
         this.invalidMD5Sums = changeLogHandler.getInvalidMD5Sums();
@@ -36,84 +31,65 @@ public class ValidationFailedException extends MigrationFailedException {
         this.setupExceptions = changeLogHandler.getSetupExceptions();
         this.changeValidationExceptions = changeLogHandler.getChangeValidationExceptions();
         this.validationErrors = changeLogHandler.getValidationErrors();
+        this.database = changeLogHandler.getDatabase();
     }
+
 
     @Override
     public String getMessage() {
-        StringBuilder message = new StringBuilder();
-        String separator = StreamUtil.getLineSeparator();
-        message.append(coreBundle.getString("validation.failed")).append(separator);
-        
-        if (!invalidMD5Sums.isEmpty()) {
-            message.append(INDENT_SPACES).append(
-                String.format(coreBundle.getString("check.sum.changed"), invalidMD5Sums.size())).append(separator);
+        StringBuffer message = new StringBuffer();
+        message.append("Validation Failed:").append(StreamUtil.getLineSeparator());
+        if (invalidMD5Sums.size() > 0) {
+            message.append("     ").append(invalidMD5Sums.size()).append(" change sets check sum").append(StreamUtil.getLineSeparator());
             for (int i=0; i< invalidMD5Sums.size(); i++) {
                 if (i > 25) {
                     break;
                 }
                 message.append("          ").append(invalidMD5Sums.get(i));
-                message.append(separator);
+                message.append(StreamUtil.getLineSeparator());
             }
         }
-        
-        if (!failedPreconditions.isEmpty()) {
-            message.append(INDENT_SPACES).append(
-                String.format(coreBundle.getString("preconditions.failed"), failedPreconditions.size()))
-                .append(separator);
+        if (failedPreconditions.size() > 0) {
+            message.append("     ").append(failedPreconditions.size()).append(" preconditions failed").append(StreamUtil.getLineSeparator());
             for (FailedPrecondition invalid : failedPreconditions) {
-                message.append(INDENT_SPACES).append(invalid.toString());
-                message.append(separator);
+                message.append("     ").append(invalid.toString());
+                message.append(StreamUtil.getLineSeparator());
             }
         }
-        
-        if (!errorPreconditions.isEmpty()) {
-            message.append(INDENT_SPACES).append(String.format(coreBundle.getString(
-                "preconditions.generated.error"), errorPreconditions.size()))
-                .append(separator);
+        if (errorPreconditions.size() > 0) {
+            message.append("     ").append(errorPreconditions.size()).append(" preconditions generated an error").append(StreamUtil.getLineSeparator());
             for (ErrorPrecondition invalid : errorPreconditions) {
-                message.append(INDENT_SPACES).append(invalid.toString());
-                message.append(separator);
+                message.append("     ").append(invalid.toString());
+                message.append(StreamUtil.getLineSeparator());
             }
         }
-        
-        if (!duplicateChangeSets.isEmpty()) {
-            message.append(INDENT_SPACES).append(String.format(
-                coreBundle.getString("change.sets.duplicate.identifiers"),
-                duplicateChangeSets.size())).append(separator);
+        if (duplicateChangeSets.size() > 0) {
+            message.append("     ").append(duplicateChangeSets.size()).append(" change sets had duplicate identifiers").append(StreamUtil.getLineSeparator());
             for (ChangeSet invalid : duplicateChangeSets) {
                 message.append("          ").append(invalid.toString(false));
-                message.append(separator);
+                message.append(StreamUtil.getLineSeparator());
             }
         }
-        
-        if(!setupExceptions.isEmpty()){
-            message.append(INDENT_SPACES).append(
-                String.format(coreBundle.getString("changes.have.failures"), setupExceptions.size())).append(separator);
+        if(setupExceptions.size() >0){
+            message.append("     ").append(setupExceptions.size()).append(" changes have failures").append(StreamUtil.getLineSeparator());
             for (SetupException invalid : setupExceptions) {
                 message.append("          ").append(invalid.toString());
-                message.append(separator);                
+                message.append(StreamUtil.getLineSeparator());                
             }
         }
-        
-        if(!changeValidationExceptions.isEmpty()){
-            message.append(INDENT_SPACES)
-                .append(String.format(
-                    coreBundle.getString("changes.have.validation.errors"), changeValidationExceptions.size())
-                ).append(separator);
+        if(changeValidationExceptions.size() >0){
+            message.append("     ").append(changeValidationExceptions.size()).append(" changes have validation errors").append(StreamUtil.getLineSeparator());
             for (Throwable invalid : changeValidationExceptions) {
-                LogService.getLog(getClass()).debug(LogType.LOG, coreBundle.getString("validation.exception"), invalid);
+                LogFactory.getLogger().debug("validation exception", invalid);
                 message.append("          ").append(invalid.toString());
-                message.append(separator);
+                message.append(StreamUtil.getLineSeparator());
             }
         }
         if(validationErrors.hasErrors()){
-            message.append(INDENT_SPACES).append(String.format(
-                coreBundle.getString("changes.have.validation.failures"),
-                validationErrors.getErrorMessages().size()
-                )).append(separator);
+            message.append("     ").append(validationErrors.getErrorMessages().size()).append(" changes have validation failures").append(StreamUtil.getLineSeparator());
             for (String invalid : validationErrors.getErrorMessages()) {
                 message.append("          ").append(invalid);
-                message.append(separator);
+                message.append(StreamUtil.getLineSeparator());
             }
         }
 
@@ -126,35 +102,35 @@ public class ValidationFailedException extends MigrationFailedException {
 
     public void printDescriptiveError(PrintStream out) {
         out.println("Validation Error: ");
-        if (!invalidMD5Sums.isEmpty()) {
-            out.println(INDENT_SPACES +invalidMD5Sums.size()+" change sets have changed since they were ran against the database");
+        if (invalidMD5Sums.size() > 0) {
+            out.println("     "+invalidMD5Sums.size()+" change sets have changed since they were ran against the database");
             for (String message : invalidMD5Sums) {
                 out.println("          " + message);
             }
         }
 
-        if (!failedPreconditions.isEmpty()) {
-            out.println(INDENT_SPACES +failedPreconditions.size()+" preconditions failed");
+        if (failedPreconditions.size() > 0) {
+            out.println("     "+failedPreconditions.size()+" preconditions failed");
             for (FailedPrecondition failedPrecondition : failedPreconditions) {
                 out.println("          "+failedPrecondition.toString());
             }
         }
-        if (!errorPreconditions.isEmpty()) {
-            out.println(INDENT_SPACES +errorPreconditions.size()+" preconditions generated an error");
+        if (errorPreconditions.size() > 0) {
+            out.println("     "+errorPreconditions.size()+" preconditions generated an error");
             for (ErrorPrecondition errorPrecondition : errorPreconditions) {
                 out.println("          "+errorPrecondition.toString());
             }
         }
 
-        if (!duplicateChangeSets.isEmpty()) {
-            out.println(INDENT_SPACES +duplicateChangeSets.size()+" change sets had duplicate identifiers");
+        if (duplicateChangeSets.size() > 0) {
+            out.println("     "+duplicateChangeSets.size()+" change sets had duplicate identifiers");
             for (ChangeSet duplicate : duplicateChangeSets) {
                 out.println("          "+duplicate.toString(false));
             }
         }
         
-        if(!setupExceptions.isEmpty()) {
-            out.println(INDENT_SPACES +setupExceptions.size()+" changes had errors");
+        if(setupExceptions.size() >0) {
+            out.println("     "+setupExceptions.size()+" changes had errors");
             for (SetupException setupEx : setupExceptions) {
                 out.println("          "+setupEx.getMessage());
             }

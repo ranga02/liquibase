@@ -2,13 +2,9 @@ package liquibase.change.core
 import liquibase.change.ChangeStatus
 import liquibase.change.StandardChangeTest
 import liquibase.changelog.ChangeSet
-import liquibase.database.DatabaseConnection
-import liquibase.database.DatabaseFactory
-import liquibase.database.OfflineConnection
 import liquibase.database.core.MSSQLDatabase
 import liquibase.parser.core.ParsedNodeException
 import liquibase.resource.ClassLoaderResourceAccessor
-import liquibase.resource.ResourceAccessor
 import liquibase.sdk.database.MockDatabase
 import liquibase.snapshot.MockSnapshotGeneratorFactory
 import liquibase.snapshot.SnapshotGeneratorFactory
@@ -16,24 +12,9 @@ import liquibase.statement.SqlStatement
 import liquibase.statement.core.InsertSetStatement
 import liquibase.statement.core.InsertStatement
 import liquibase.test.JUnitResourceAccessor
-import liquibase.test.TestContext
 import spock.lang.Unroll
 
 public class LoadDataChangeTest extends StandardChangeTest {
-
-    MSSQLDatabase mssqlDb;
-    MockDatabase mockDb;
-
-    def setup() {
-        ResourceAccessor resourceAccessor = TestContext.getInstance().getTestResourceAccessor()
-        String offlineUrl
-
-        mssqlDb = new MSSQLDatabase();
-        mssqlDb.setConnection(DatabaseFactory.getInstance().openConnection("offline:mssql",
-                "superuser", "superpass", null, resourceAccessor));
-
-        mockDb = new MockDatabase();
-    }
 
 
     def "loadDataEmpty database agnostic"() throws Exception {
@@ -46,33 +27,9 @@ public class LoadDataChangeTest extends StandardChangeTest {
 
         refactoring.setResourceAccessor(new JUnitResourceAccessor());
 
-
-        SqlStatement[] sqlStatement = refactoring.generateStatements(mssqlDb);
-        then:
-        sqlStatement.length == 1
-        assert sqlStatement[0] instanceof InsertSetStatement
-
-        when:
-        SqlStatement[] sqlStatements = ((InsertSetStatement)sqlStatement[0]).getStatementsArray();
-
-        then:
-        sqlStatements.length == 0
-    }
-
-    def "loadDataEmpty not using InsertSetStatement"() throws Exception {
-        when:
-        LoadDataChange refactoring = new LoadDataChange();
-        refactoring.setSchemaName("SCHEMA_NAME");
-        refactoring.setTableName("TABLE_NAME");
-        refactoring.setFile("liquibase/change/core/empty.data.csv");
-        refactoring.setSeparator(",");
-
-        refactoring.setResourceAccessor(new JUnitResourceAccessor());
-
-        SqlStatement[] sqlStatements = refactoring.generateStatements(mockDb);
-
-        then:
-        sqlStatements.length == 0
+		SqlStatement[] sqlStatement = refactoring.generateStatements(new MSSQLDatabase());
+		then:
+		sqlStatement.length == 0
     }
 
 
@@ -336,7 +293,7 @@ public class LoadDataChangeTest extends StandardChangeTest {
         relativeChange.setFile("core/sample.data1.csv");
         relativeChange.setResourceAccessor(new ClassLoaderResourceAccessor());
 
-        SqlStatement[] relativeStatements = relativeChange.generateStatements(mockDb);
+        SqlStatement[] relativeStatements = relativeChange.generateStatements(new MockDatabase());
 
         LoadUpdateDataChange nonRelativeChange = new LoadUpdateDataChange();
         nonRelativeChange.setSchemaName("SCHEMA_NAME");
@@ -345,7 +302,7 @@ public class LoadDataChangeTest extends StandardChangeTest {
         nonRelativeChange.setFile("liquibase/change/core/sample.data1.csv");
         nonRelativeChange.setResourceAccessor(new ClassLoaderResourceAccessor());
 
-        SqlStatement[] nonRelativeStatements = nonRelativeChange.generateStatements(mockDb);
+        SqlStatement[] nonRelativeStatements = nonRelativeChange.generateStatements(new MockDatabase());
 
         then:
         assert relativeStatements != null

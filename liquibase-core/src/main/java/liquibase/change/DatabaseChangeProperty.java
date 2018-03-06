@@ -1,6 +1,5 @@
 package liquibase.change;
 
-import liquibase.database.Database;
 import liquibase.serializer.LiquibaseSerializable;
 
 import java.lang.annotation.ElementType;
@@ -12,8 +11,7 @@ import java.lang.annotation.Target;
  * Annotation used by {@link AbstractChange } to declare {@link ChangeParameterMetaData} information.
  * The annotation should be placed on the read method.
  * This annotation should not be checked for outside AbstractChange, if any code is trying to determine the
- * metadata provided by this annotation, it should get it from
- * {@link liquibase.change.ChangeFactory#getChangeMetaData(Change)}
+ * metadata provided by this annotation, it should get it from {@link liquibase.change.Change#getChangeMetaData()}
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD})
@@ -22,41 +20,40 @@ public @interface DatabaseChangeProperty {
     /**
      * Value to put into {@link ChangeParameterMetaData#getDescription()}
      */
-    String description() default "";
+    public String description() default "";
 
     /**
-     * Value to put into {@link liquibase.change.ChangeParameterMetaData#getExampleValue(Database)}
+     * Value to put into {@link liquibase.change.ChangeParameterMetaData#getExampleValue()}
      */
-    String exampleValue() default "";
+    public String exampleValue() default "";
 
     /**
-     * Value to put into {@link liquibase.change.ChangeParameterMetaData#getSince()}
+     * Value to put into {@link liquibase.change.ChangeParameterMetaData#getExampleValue()}
      */
-    String since() default "";
+    public String since() default "";
 
     /**
-     * If false, this field or method will not be included in {@link liquibase.change.ChangeParameterMetaData}
+     * If false, this field or method will not be included in {@ChangeParameterMetaData}
      */
-    boolean isChangeProperty() default true;
+    public boolean isChangeProperty() default true;
 
     /**
      * Value to put into {@link ChangeParameterMetaData#getRequiredForDatabase()}
      */
-    String[] requiredForDatabase() default ChangeParameterMetaData.COMPUTE;
+    public String[] requiredForDatabase() default ChangeParameterMetaData.COMPUTE;
 
     /**
      * Value to put into {@link ChangeParameterMetaData#getSupportedDatabases()}
      */
-    String[] supportsDatabase() default ChangeParameterMetaData.COMPUTE;
+    public String[] supportsDatabase() default ChangeParameterMetaData.COMPUTE;
 
     /**
      * Value to put into {@link liquibase.change.ChangeParameterMetaData#getMustEqualExisting()}
      */
-    String mustEqualExisting() default "";
+    public String mustEqualExisting() default "";
 
     /**
      * Format to use when serializing this Change via a {@link liquibase.serializer.ChangeLogSerializer}.
      */
-    LiquibaseSerializable.SerializationType serializationType() default LiquibaseSerializable.SerializationType
-        .NAMED_FIELD;
+    public LiquibaseSerializable.SerializationType serializationType() default LiquibaseSerializable.SerializationType.NAMED_FIELD;
 }

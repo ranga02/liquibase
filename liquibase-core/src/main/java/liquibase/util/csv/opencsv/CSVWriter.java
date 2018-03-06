@@ -17,6 +17,8 @@ package liquibase.util.csv.opencsv;
  */
 
 import java.io.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -197,7 +199,7 @@ public class CSVWriter implements Closeable, Flushable {
 
          Boolean stringContainsSpecialCharacters = stringContainsSpecialCharacters(nextElement);
 
-         if ((applyQuotesToAll || stringContainsSpecialCharacters) && (quotechar != NO_QUOTE_CHARACTER)) {
+         if ((applyQuotesToAll || stringContainsSpecialCharacters) && quotechar != NO_QUOTE_CHARACTER) {
             sb.append(quotechar);
          }
 
@@ -207,7 +209,7 @@ public class CSVWriter implements Closeable, Flushable {
             sb.append(nextElement);
          }
 
-         if ((applyQuotesToAll || stringContainsSpecialCharacters) && (quotechar != NO_QUOTE_CHARACTER)) {
+         if ((applyQuotesToAll || stringContainsSpecialCharacters) && quotechar != NO_QUOTE_CHARACTER) {
             sb.append(quotechar);
          }
       }
@@ -232,8 +234,7 @@ public class CSVWriter implements Closeable, Flushable {
     * @return true if the line contains the quote, escape, separator, newline or return.
     */
    protected boolean stringContainsSpecialCharacters(String line) {
-      return (line.indexOf(quotechar) != -1) || (line.indexOf(escapechar) != -1) || (line.indexOf(separator) != -1)
-          || line.contains(DEFAULT_LINE_END) || line.contains("\r");
+      return line.indexOf(quotechar) != -1 || line.indexOf(escapechar) != -1 || line.indexOf(separator) != -1 || line.contains(DEFAULT_LINE_END) || line.contains("\r");
    }
 
    /**
@@ -257,7 +258,7 @@ public class CSVWriter implements Closeable, Flushable {
     * @param nextChar - character to process
     */
    private void processCharacter(StringBuilder sb, char nextChar) {
-      if ((escapechar != NO_ESCAPE_CHARACTER) && checkCharactersToEscape(nextChar)) {
+      if (escapechar != NO_ESCAPE_CHARACTER && checkCharactersToEscape(nextChar)) {
          sb.append(escapechar).append(nextChar);
       } else {
          sb.append(nextChar);
@@ -265,8 +266,9 @@ public class CSVWriter implements Closeable, Flushable {
    }
 
    private boolean checkCharactersToEscape(char nextChar) {
-      return (quotechar == NO_QUOTE_CHARACTER) ? ((nextChar == quotechar) || (nextChar == escapechar) || (nextChar ==
-          separator)) : ((nextChar == quotechar) || (nextChar == escapechar));
+      return quotechar == NO_QUOTE_CHARACTER ?
+              (nextChar == quotechar || nextChar == escapechar || nextChar == separator)
+              : (nextChar == quotechar || nextChar == escapechar);
    }
 
    /**

@@ -4,6 +4,7 @@ import liquibase.database.Database;
 import liquibase.diff.ObjectDifferences;
 import liquibase.exception.UnexpectedLiquibaseException;
 import liquibase.servicelocator.ServiceLocator;
+import liquibase.structure.AbstractDatabaseObject;
 import liquibase.structure.DatabaseObject;
 import liquibase.structure.core.Catalog;
 import liquibase.structure.core.Schema;
@@ -15,10 +16,10 @@ public class DatabaseObjectComparatorFactory {
 
     private static DatabaseObjectComparatorFactory instance;
 
-    private List<DatabaseObjectComparator> comparators = new ArrayList<>();
+    private List<DatabaseObjectComparator> comparators = new ArrayList<DatabaseObjectComparator>();
 
-    private Map<String, List<DatabaseObjectComparator>> validComparatorsByClassAndDatabase = new HashMap<>();
-    private Map<String, DatabaseObjectComparatorChain> comparatorChainsByClassAndDatabase = new HashMap<>();
+    private Map<String, List<DatabaseObjectComparator>> validComparatorsByClassAndDatabase = new HashMap<String, List<DatabaseObjectComparator>>();
+    private Map<String, DatabaseObjectComparatorChain> comparatorChainsByClassAndDatabase = new HashMap<String, DatabaseObjectComparatorChain>();
 
     private DatabaseObjectComparatorFactory() {
         Class[] classes;
@@ -49,9 +50,6 @@ public class DatabaseObjectComparatorFactory {
         instance = new DatabaseObjectComparatorFactory();
     }
 
-    public static synchronized void resetAll() {
-        instance = null;
-    }
 
     public void register(DatabaseObjectComparator generator) {
         comparators.add(generator);
@@ -78,7 +76,7 @@ public class DatabaseObjectComparatorFactory {
             return validComparatorsByClassAndDatabase.get(key);
         }
 
-        List<DatabaseObjectComparator> validComparators = new ArrayList<>();
+        List<DatabaseObjectComparator> validComparators = new ArrayList<DatabaseObjectComparator>();
 
         for (DatabaseObjectComparator comparator : comparators) {
             if (comparator.getPriority(comparatorClass, database) > 0) {
@@ -93,19 +91,24 @@ public class DatabaseObjectComparatorFactory {
         return validComparators;
     }
 
+
+    public static synchronized void resetAll() {
+        instance = null;
+    }
+
     public boolean isSameObject(DatabaseObject object1, DatabaseObject object2, CompareControl.SchemaComparison[] schemaComparisons, Database accordingTo) {
-        if ((object1 == null) && (object2 == null)) {
+        if (object1 == null && object2 == null) {
             return true;
         }
 
-        if ((object1 instanceof Schema) || (object2 instanceof Schema)) {
+        if (object1 instanceof Schema || object2 instanceof Schema) {
             if (object1 == null) {
                 object1 = new Schema();
             }
             if (object2 == null) {
                 object2 = new Schema();
             }
-        } else if ((object1 instanceof Catalog) || (object2 instanceof Catalog)) {
+        } else if (object1 instanceof Catalog || object2 instanceof Catalog) {
                 if (object1 == null) {
                     object1 = new Catalog();
                 }
@@ -113,13 +116,13 @@ public class DatabaseObjectComparatorFactory {
                     object2 = new Catalog();
                 }
         }
-        if ((object1 == null) || (object2 == null)) {
+        if (object1 == null || object2 == null) {
             return false;
         }
 
         String snapshotId1 = object1.getSnapshotId();
         String snapshotId2 = object2.getSnapshotId();
-        if ((snapshotId1 != null) && (snapshotId2 != null)) {
+        if (snapshotId1 != null && snapshotId2 != null) {
             if (snapshotId1.equals(snapshotId2)) {
                 return true;
             }
@@ -165,8 +168,7 @@ public class DatabaseObjectComparatorFactory {
     }
 
     public ObjectDifferences findDifferences(DatabaseObject object1, DatabaseObject object2, Database accordingTo, CompareControl compareControl) {
-        return createComparatorChain(object1.getClass(), compareControl.getSchemaComparisons(), accordingTo)
-            .findDifferences(object1, object2, accordingTo, compareControl, new HashSet<String>());
+        return createComparatorChain(object1.getClass(), compareControl.getSchemaComparisons(), accordingTo).findDifferences(object1, object2, accordingTo, compareControl, new HashSet<String>());
 
     }
 
@@ -180,7 +182,7 @@ public class DatabaseObjectComparatorFactory {
         }
 
         List<DatabaseObjectComparator> comparators = DatabaseObjectComparatorFactory.getInstance().getComparators(databaseObjectType, database);
-        if ((comparators == null) || comparators.isEmpty()) {
+        if (comparators == null || comparators.size() == 0) {
             return null;
         }
 

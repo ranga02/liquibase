@@ -1,8 +1,6 @@
 package liquibase.change.core;
 
-import liquibase.change.AbstractChange;
-import liquibase.change.ColumnConfig;
-import liquibase.change.DatabaseChangeProperty;
+import liquibase.change.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +14,7 @@ public abstract class AbstractModifyDataChange extends AbstractChange {
     protected String schemaName;
     protected String tableName;
 
-    protected List<ColumnConfig> whereParams = new ArrayList<>();
+    protected List<ColumnConfig> whereParams = new ArrayList<ColumnConfig>();
 
     protected String where;
 

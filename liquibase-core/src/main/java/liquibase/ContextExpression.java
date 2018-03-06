@@ -3,6 +3,7 @@ package liquibase;
 import liquibase.exception.UnexpectedLiquibaseException;
 import liquibase.util.StringUtils;
 
+import java.text.ParseException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -12,8 +13,8 @@ import java.util.regex.Pattern;
  */
 public class ContextExpression {
 
-    private HashSet<String> contexts = new HashSet<>();
-    private String originalString;
+    private HashSet<String> contexts = new HashSet<String>();
+    private String originalString = null;
 
     public ContextExpression() {
     }
@@ -66,17 +67,17 @@ public class ContextExpression {
         if (originalString != null) {
             return originalString;
         }
-        return "(" + StringUtils.join(new TreeSet<String>(this.contexts), "), (") + ")";
+        return "(" + StringUtils.join(new TreeSet(this.contexts), "), (") + ")";
     }
 
     /**
      * Returns true if the passed runtime contexts match this context expression
      */
     public boolean matches(Contexts runtimeContexts) {
-        if ((runtimeContexts == null) || runtimeContexts.isEmpty()) {
+        if (runtimeContexts == null || runtimeContexts.isEmpty()) {
             return true;
         }
-        if (this.contexts.isEmpty()) {
+        if (this.contexts.size() == 0) {
             return true;
         }
 
@@ -93,10 +94,10 @@ public class ContextExpression {
             return true;
         }
 
-        if (":TRUE".equals(expression.trim())) {
+        if (expression.trim().equals(":TRUE")) {
             return true;
         }
-        if (":FALSE".equals(expression.trim())) {
+        if (expression.trim().equals(":FALSE")) {
             return false;
         }
 
@@ -142,23 +143,31 @@ public class ContextExpression {
 
         for (String context : runtimeContexts.getContexts()) {
             if (context.equalsIgnoreCase(expression)) {
-                return !notExpression;
+                if (notExpression) {
+                    return false;
+                } else {
+                    return true;
+                }
             }
         }
-        return notExpression;
+        if (notExpression) {
+            return true;
+        } else {
+            return false;
+        }
 
 
     }
 
     public boolean isEmpty() {
-        return (this.contexts == null) || this.contexts.isEmpty();
+        return this.contexts == null || this.contexts.size() == 0;
     }
 
     public static boolean matchesAll(Collection<ContextExpression> expressions, Contexts contexts) {
-        if ((expressions == null) || expressions.isEmpty()) {
+        if (expressions == null || expressions.isEmpty()) {
             return true;
         }
-        if ((contexts == null) || contexts.isEmpty()) {
+        if (contexts == null || contexts.isEmpty()) {
             return true;
         }
         for (ContextExpression expression : expressions) {

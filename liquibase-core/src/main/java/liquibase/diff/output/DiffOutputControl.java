@@ -19,7 +19,7 @@ import java.util.Set;
 
 public class DiffOutputControl {
 
-    private Set<CatalogAndSchema> includeSchemas = new HashSet<>();
+    private Set<CatalogAndSchema> includeSchemas = new HashSet<CatalogAndSchema>();
 
     private boolean includeSchema;
     private boolean includeCatalog;
@@ -30,10 +30,10 @@ public class DiffOutputControl {
     private DatabaseObjectCollection alreadyHandledMissing= new DatabaseObjectCollection(new DatabaseForHash());
     private DatabaseObjectCollection alreadyHandledUnexpected = new DatabaseObjectCollection(new DatabaseForHash());
     private DatabaseObjectCollection alreadyHandledChanged = new DatabaseObjectCollection(new DatabaseForHash());
-    private ObjectQuotingStrategy objectQuotingStrategy;
+    private ObjectQuotingStrategy objectQuotingStrategy = null;
 
-    private ContextExpression context;
-    private Labels labels;
+    private ContextExpression context = null;
+    private Labels labels = null;
 
     private ObjectChangeFilter objectChangeFilter;
 
@@ -124,7 +124,7 @@ public class DiffOutputControl {
     }
 
     public boolean shouldOutput(DatabaseObject object, Database accordingTo) {
-        if (!includeSchemas.isEmpty()) {
+        if (includeSchemas.size() > 0) {
             Schema schema = object.getSchema();
             if (schema == null) {
                 return true;

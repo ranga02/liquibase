@@ -1,5 +1,6 @@
 package liquibase.sqlgenerator.core;
 
+import liquibase.change.core.InsertDataChange;
 import liquibase.database.Database;
 import liquibase.exception.ValidationErrors;
 import liquibase.sql.Sql;

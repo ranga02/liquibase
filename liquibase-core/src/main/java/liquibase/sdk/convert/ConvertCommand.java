@@ -3,7 +3,6 @@ package liquibase.sdk.convert;
 import liquibase.changelog.ChangeLogParameters;
 import liquibase.changelog.DatabaseChangeLog;
 import liquibase.command.AbstractCommand;
-import liquibase.command.CommandResult;
 import liquibase.command.CommandValidationErrors;
 import liquibase.parser.ChangeLogParser;
 import liquibase.parser.ChangeLogParserFactory;
@@ -11,6 +10,7 @@ import liquibase.resource.ClassLoaderResourceAccessor;
 import liquibase.resource.CompositeResourceAccessor;
 import liquibase.resource.FileSystemResourceAccessor;
 import liquibase.resource.ResourceAccessor;
+import liquibase.sdk.Main;
 import liquibase.serializer.ChangeLogSerializer;
 import liquibase.serializer.ChangeLogSerializerFactory;
 
@@ -24,6 +24,12 @@ public class ConvertCommand extends AbstractCommand {
     private String src;
     private String out;
     private String classpath;
+
+    private Main mainApp;
+
+    public ConvertCommand(Main mainApp) {
+        this.mainApp = mainApp;
+    }
 
     @Override
     public String getName() {
@@ -55,8 +61,8 @@ public class ConvertCommand extends AbstractCommand {
     }
 
     @Override
-    protected CommandResult run() throws Exception {
-        List<ResourceAccessor> openers = new ArrayList<>();
+    protected Object run() throws Exception {
+        List<ResourceAccessor> openers = new ArrayList<ResourceAccessor>();
         openers.add(new FileSystemResourceAccessor());
         openers.add(new ClassLoaderResourceAccessor());
         if (classpath != null) {
@@ -73,12 +79,15 @@ public class ConvertCommand extends AbstractCommand {
         if (!outFile.exists()) {
             outFile.getParentFile().mkdirs();
         }
-        
-        try (FileOutputStream outputStream = new FileOutputStream(outFile)) {
+        FileOutputStream outputStream = new FileOutputStream(outFile);
+        try {
             outSerializer.write(changeLog.getChangeSets(), outputStream);
+        } finally {
+            outputStream.flush();
+            outputStream.close();
         }
 
-        return new CommandResult("Converted successfully");
+        return "Converted successfully";
     }
 
     @Override

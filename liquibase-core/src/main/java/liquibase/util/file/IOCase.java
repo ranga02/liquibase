@@ -22,7 +22,7 @@ import java.io.Serializable;
  * Enumeration of IO case sensitivity.
  * <p>
  * Different filing systems have different rules for case-sensitivity.
- * Windows is case-insensitive, Unix is case-isSensitive.
+ * Windows is case-insensitive, Unix is case-sensitive.
  * <p>
  * This class captures that difference, providing an enumeration to
  * control how filename comparisons should be performed. It also provides
@@ -38,7 +38,7 @@ import java.io.Serializable;
 final class IOCase implements Serializable {
 
     /**
-     * The constant for case isSensitive regardless of operating system.
+     * The constant for case sensitive regardless of operating system.
      */
     public static final IOCase SENSITIVE = new IOCase("Sensitive", true);
 
@@ -49,7 +49,7 @@ final class IOCase implements Serializable {
 
     /**
      * The constant for case sensitivity determined by the current operating system.
-     * Windows is case-insensitive when comparing filenames, Unix is case-isSensitive.
+     * Windows is case-insensitive when comparing filenames, Unix is case-sensitive.
      * <p>
      * If you derialize this constant of Windows, and deserialize on Unix, or vice
      * versa, then the value of the case-sensitivity flag will change.
@@ -63,7 +63,7 @@ final class IOCase implements Serializable {
     private final String name;
 
     /** The sensitivity flag. */
-    private final transient boolean isSensitive;
+    private final transient boolean sensitive;
 
     //-----------------------------------------------------------------------
     /**
@@ -91,11 +91,11 @@ final class IOCase implements Serializable {
      * Private constructor.
      *
      * @param name  the name
-     * @param isSensitive  the sensitivity
+     * @param sensitive  the sensitivity
      */
-    private IOCase(String name, boolean isSensitive) {
+    private IOCase(String name, boolean sensitive) {
         this.name = name;
-        this.isSensitive = isSensitive;
+        this.sensitive = sensitive;
     }
 
     /**
@@ -119,12 +119,12 @@ final class IOCase implements Serializable {
     }
 
     /**
-     * Does the object represent case isSensitive comparison.
+     * Does the object represent case sensitive comparison.
      *
-     * @return true if case isSensitive
+     * @return true if case sensitive
      */
     public boolean isCaseSensitive() {
-        return isSensitive;
+        return sensitive;
     }
 
     //-----------------------------------------------------------------------
@@ -140,10 +140,10 @@ final class IOCase implements Serializable {
      * @throws NullPointerException if either string is null
      */
     public int checkCompareTo(String str1, String str2) {
-        if ((str1 == null) || (str2 == null)) {
+        if (str1 == null || str2 == null) {
             throw new NullPointerException("The strings must not be null");
         }
-        return isSensitive ? str1.compareTo(str2) : str1.compareToIgnoreCase(str2);
+        return sensitive ? str1.compareTo(str2) : str1.compareToIgnoreCase(str2);
     }
 
     /**
@@ -158,10 +158,10 @@ final class IOCase implements Serializable {
      * @throws NullPointerException if either string is null
      */
     public boolean checkEquals(String str1, String str2) {
-        if ((str1 == null) || (str2 == null)) {
+        if (str1 == null || str2 == null) {
             throw new NullPointerException("The strings must not be null");
         }
-        return isSensitive ? str1.equals(str2) : str1.equalsIgnoreCase(str2);
+        return sensitive ? str1.equals(str2) : str1.equalsIgnoreCase(str2);
     }
 
     /**
@@ -176,7 +176,7 @@ final class IOCase implements Serializable {
      * @throws NullPointerException if either string is null
      */
     public boolean checkStartsWith(String str, String start) {
-        return str.regionMatches(!isSensitive, 0, start, 0, start.length());
+        return str.regionMatches(!sensitive, 0, start, 0, start.length());
     }
 
     /**
@@ -192,7 +192,7 @@ final class IOCase implements Serializable {
      */
     public boolean checkEndsWith(String str, String end) {
         int endLen = end.length();
-        return str.regionMatches(!isSensitive, str.length() - endLen, end, 0, endLen);
+        return str.regionMatches(!sensitive, str.length() - endLen, end, 0, endLen);
     }
 
     /**
@@ -208,7 +208,7 @@ final class IOCase implements Serializable {
      * @throws NullPointerException if either string is null
      */
     public boolean checkRegionMatches(String str, int strStartIndex, String search) {
-        return str.regionMatches(!isSensitive, strStartIndex, search, 0, search.length());
+        return str.regionMatches(!sensitive, strStartIndex, search, 0, search.length());
     }
 
     /**
@@ -222,7 +222,7 @@ final class IOCase implements Serializable {
         if (str == null) {
             return null;
         }
-        return isSensitive ? str : str.toLowerCase();
+        return sensitive ? str : str.toLowerCase();
     }
 
     //-----------------------------------------------------------------------

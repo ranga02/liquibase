@@ -1,11 +1,16 @@
 package liquibase.lockservice;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
+
 import liquibase.database.Database;
 import liquibase.exception.UnexpectedLiquibaseException;
 import liquibase.servicelocator.ServiceLocator;
-
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author John Sanda
@@ -14,9 +19,9 @@ public class LockServiceFactory {
 
 	private static LockServiceFactory instance;
 
-	private List<LockService> registry = new ArrayList<>();
+	private List<LockService> registry = new ArrayList<LockService>();
 
-	private Map<Database, LockService> openLockServices = new ConcurrentHashMap<>();
+	private Map<Database, LockService> openLockServices = new ConcurrentHashMap<Database, LockService>();
 
 	public static synchronized LockServiceFactory getInstance() {
 		if (instance == null) {
@@ -57,12 +62,12 @@ public class LockServiceFactory {
 
 	public LockService getLockService(Database database) {
 		if (!openLockServices.containsKey(database)) {
-			SortedSet<LockService> foundServices = new TreeSet<>(new Comparator<LockService>() {
-                @Override
+			SortedSet<LockService> foundServices = new TreeSet<LockService>(new Comparator<LockService>() {
+				@Override
                 public int compare(LockService o1, LockService o2) {
-                    return -1 * Integer.valueOf(o1.getPriority()).compareTo(o2.getPriority());
-                }
-            });
+					return -1 * Integer.valueOf(o1.getPriority()).compareTo(o2.getPriority());
+				}
+			});
 
 			for (LockService lockService : registry) {
 				if (lockService.supports(database)) {
@@ -70,7 +75,7 @@ public class LockServiceFactory {
 				}
 			}
 
-			if (foundServices.isEmpty()) {
+			if (foundServices.size() == 0) {
 				throw new UnexpectedLiquibaseException("Cannot find LockService for " + database.getShortName());
 			}
 

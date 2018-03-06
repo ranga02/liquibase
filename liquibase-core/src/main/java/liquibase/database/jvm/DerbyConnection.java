@@ -1,8 +1,6 @@
 package liquibase.database.jvm;
 
 import liquibase.exception.DatabaseException;
-import liquibase.logging.LogService;
-import liquibase.logging.LogType;
 import liquibase.util.JdbcUtils;
 
 import java.sql.Connection;
@@ -34,9 +32,7 @@ public class DerbyConnection extends JdbcConnection {
         Statement st = null;
         try {
             st = createStatement();
-            final String sql = "CALL SYSCS_UTIL.SYSCS_CHECKPOINT_DATABASE()";
-            LogService.getLog(getClass()).info(LogType.WRITE_SQL, sql);
-            st.execute(sql);
+            st.execute("CALL SYSCS_UTIL.SYSCS_CHECKPOINT_DATABASE()");
         } catch (SQLException e) {
             throw new DatabaseException(e);
         } finally {

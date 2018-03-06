@@ -1,42 +1,19 @@
 package liquibase.sqlgenerator.core;
 
+import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 import liquibase.database.core.MSSQLDatabase;
 import liquibase.statement.core.InsertOrUpdateStatement;
-import org.junit.Assert;
-import org.junit.Test;
+import liquibase.sql.Sql;
+import static junit.framework.Assert.assertTrue;
+import junit.framework.Assert;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import java.lang.reflect.InvocationTargetException;
 
 public class InsertOrUpdateGeneratorMSSQLTest {
 
-
-    public static Object invokePrivateMethod(Object o, String methodName, Object[] params) {
-        // Check we have valid arguments...
-        Assert.assertNotNull(o);
-        Assert.assertNotNull(methodName);
-//            Assert.assertNotNull(params);
-
-        // Go and find the private method...
-        final Method methods[] = o.getClass().getDeclaredMethods();
-        for (int i = 0; i < methods.length; ++i) {
-            if (methodName.equals(methods[i].getName())) {
-                try {
-                    methods[i].setAccessible(true);
-                    return methods[i].invoke(o, params);
-                } catch (IllegalAccessException ex) {
-                    Assert.fail("IllegalAccessException accessing " + methodName);
-                } catch (InvocationTargetException ite) {
-                    Assert.fail("InvocationTargetException accessing " + methodName);
-                }
-            }
-        }
-        Assert.fail("Method '" + methodName + "' not found");
-        return null;
-    }
+    
 
     @Test
     public void getRecordCheck(){
@@ -55,7 +32,7 @@ public class InsertOrUpdateGeneratorMSSQLTest {
         String[] lines = recordCheck.split("\n");
         assertEquals("DECLARE @reccount integer", lines[lineNumber]);
         lineNumber++;
-        assertEquals("SELECT @reccount = count(*) FROM mycatalog.myschema.mytable WHERE " + where, lines[lineNumber]);
+        assertEquals("SELECT @reccount = count(*) FROM [mycatalog].[myschema].[mytable] WHERE " + where, lines[lineNumber]);
         lineNumber++;
         assertEquals("IF @reccount = 0", lines[lineNumber]);
 
@@ -127,6 +104,32 @@ public class InsertOrUpdateGeneratorMSSQLTest {
          lineNumber++;
          assertEquals("END", lines[lineNumber]);
      }
+
+    public static Object invokePrivateMethod (Object o, String methodName, Object[] params) {
+             // Check we have valid arguments...
+            Assert.assertNotNull(o);
+            Assert.assertNotNull(methodName);
+//            Assert.assertNotNull(params);
+
+            // Go and find the private method...
+            final Method methods[] = o.getClass().getDeclaredMethods();
+            for (int i = 0; i < methods.length; ++i) {
+              if (methodName.equals(methods[i].getName())) {
+                try {
+                  methods[i].setAccessible(true);
+                  return methods[i].invoke(o, params);
+                }
+                catch (IllegalAccessException ex) {
+                  Assert.fail ("IllegalAccessException accessing " + methodName);
+                }
+                catch (InvocationTargetException ite) {
+                    Assert.fail ("InvocationTargetException accessing " + methodName);
+                }
+              }
+            }
+            Assert.fail ("Method '" + methodName +"' not found");
+            return null;
+          }
 
 
 }

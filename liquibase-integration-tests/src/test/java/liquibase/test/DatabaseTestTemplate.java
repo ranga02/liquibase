@@ -1,5 +1,9 @@
 package liquibase.test;
 
+import java.util.Set;
+
+import org.junit.ComparisonFailure;
+
 import liquibase.database.Database;
 import liquibase.database.core.SQLiteDatabase;
 import liquibase.exception.MigrationFailedException;
@@ -7,9 +11,6 @@ import liquibase.executor.ExecutorService;
 import liquibase.executor.jvm.JdbcExecutor;
 import liquibase.lockservice.LockService;
 import liquibase.lockservice.LockServiceFactory;
-import org.junit.ComparisonFailure;
-
-import java.util.Set;
 
 public class DatabaseTestTemplate {
     public void testOnAvailableDatabases(DatabaseTest test) throws Exception {
@@ -45,7 +46,17 @@ public class DatabaseTestTemplate {
                 ComparisonFailure newError = new ComparisonFailure(newMessage, e.getExpected(), e.getActual());
                 newError.setStackTrace(e.getStackTrace());
                 throw newError;
-            } catch (AssertionError | MigrationFailedException e) {
+            } catch (AssertionError e) {
+                e.printStackTrace();
+                String newMessage = "Database Test Failure on " + database;
+                if (e.getMessage() != null) {
+                    newMessage += ": " + e.getMessage();
+                }
+
+                AssertionError newError = new AssertionError(newMessage);
+                newError.setStackTrace(e.getStackTrace());
+                throw newError;
+            } catch (MigrationFailedException e) {
                 e.printStackTrace();
                 String newMessage = "Database Test Failure on " + database;
                 if (e.getMessage() != null) {
@@ -70,7 +81,7 @@ public class DatabaseTestTemplate {
                 }
                 throw newError;
             } finally {
-                if ((database.getConnection() != null) && !database.getAutoCommitMode()) {
+                if (database.getConnection() != null && !database.getAutoCommitMode()) {
                     database.rollback();
                 }
             }

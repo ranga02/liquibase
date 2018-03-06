@@ -17,9 +17,8 @@ import java.util.logging.LogRecord;
  * Servlet that can be registered via web.xml to view the log of the Liquibase run from the LiquibaseServletListener.
  */
 public class LiquibaseStatusServlet extends HttpServlet {
-    
-    private static final long serialVersionUID = 1092565349351848089L;
-    private static List<LogRecord> liquibaseRunLog = new ArrayList<>();
+
+    private static List<LogRecord> liquibaseRunLog = new ArrayList<LogRecord>();
 
     public static synchronized void logMessage(LogRecord message) {
         liquibaseRunLog.add(message);
@@ -40,7 +39,7 @@ public class LiquibaseStatusServlet extends HttpServlet {
         writer.println("<html>");
         writer.println("<head><title>Liquibase Status</title></head>");
         writer.println("<body>");
-        if (liquibaseRunLog.isEmpty()) {
+        if (liquibaseRunLog.size() == 0) {
             writer.println("<b>Liquibase did not run</b>");
         } else {
             writer.println("<b>View level: " + getLevelLink(Level.SEVERE, currentLevel, httpServletRequest)
@@ -53,8 +52,7 @@ public class LiquibaseStatusServlet extends HttpServlet {
                     + "</b>");
 
             writer.println("<hr>");
-            writer.println("<b>Liquibase started at " + DateFormat.getDateTimeInstance().format(new Date
-                (liquibaseRunLog.get(0).getMillis())));
+            writer.println("<b>Liquibase started at " + DateFormat.getDateTimeInstance().format(new Date(liquibaseRunLog.get(0).getMillis())));
             writer.println("<hr>");
             writer.println("<pre>");
             for (LogRecord record : liquibaseRunLog) {
@@ -70,8 +68,7 @@ public class LiquibaseStatusServlet extends HttpServlet {
 
             writer.println("</pre>");
             writer.println("<hr>");
-            writer.println("<b>Liquibase finished at " + DateFormat.getDateTimeInstance().format(new Date
-                (liquibaseRunLog.get(liquibaseRunLog.size() - 1).getMillis())));
+            writer.println("<b>Liquibase finished at " + DateFormat.getDateTimeInstance().format(new Date(liquibaseRunLog.get(liquibaseRunLog.size() - 1).getMillis())));
         }
         writer.println("</body>");
         writer.println("</html>");

@@ -1,6 +1,21 @@
 Liquibase Core Changelog
 ===========================================
 
+Changes in version 3.5.5.2 (2018.03.06)
+
+- Change error message to "Liquibase update failed"
+- For Sybase, add 'set nocount off, set rowcount 0' at the end of every changeset
+
+
+Changes in version 3.5.5.1 (2018.03.05)
+
+- Changed default of failOnError to false and runOnChange to true in FormattedSqlChangeLogParser.java
+- Log sql output in files - JdbcExecutor.java, ExecutePreparedStatementBase.java, JdbcUtils.java
+- Change Sybase jconnect driver to jconnect-7
+- Use DATABASECHANGELOG and DATABASECHANGELOGLOCK on a single database or Sybase
+- Throw exception when any one of the tests fail
+
+
 Changes in version 3.5.5 (2018.02.5)
 
 -  [CORE-2851] - includeAll tag with a relative path duplicates the database changes with an absolute and with a relative changelog

@@ -3,6 +3,7 @@ package liquibase.sqlgenerator.core;
 import liquibase.database.Database;
 import liquibase.database.core.MSSQLDatabase;
 import liquibase.datatype.DataTypeFactory;
+import liquibase.exception.DatabaseException;
 import liquibase.exception.ValidationErrors;
 import liquibase.sql.Sql;
 import liquibase.sqlgenerator.SqlGeneratorChain;
@@ -33,7 +34,7 @@ public class CreateDatabaseChangeLogLockTableGenerator extends AbstractSqlGenera
     }
 
     protected String getCharTypeName(Database database) {
-        if ((database instanceof MSSQLDatabase) && ((MSSQLDatabase) database).sendsStringParametersAsUnicode()) {
+        if (database instanceof MSSQLDatabase && ((MSSQLDatabase) database).sendsStringParametersAsUnicode()) {
             return "nvarchar";
         }
         return "varchar";
@@ -41,7 +42,13 @@ public class CreateDatabaseChangeLogLockTableGenerator extends AbstractSqlGenera
 
     protected String getDateTimeTypeString(Database database) {
         if (database instanceof MSSQLDatabase) {
-            return "datetime2(3)";
+            try {
+                if (database.getDatabaseMajorVersion() >= 10) { // 2008 or later
+                    return "datetime2(3)";
+                }
+            } catch (DatabaseException e) {
+                // ignore
+            }
         }
         return "datetime";
     }

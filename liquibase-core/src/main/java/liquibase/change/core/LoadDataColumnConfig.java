@@ -10,7 +10,7 @@ public class LoadDataColumnConfig extends ColumnConfig {
     private Integer index;
     private String header;
 
-    public Integer getIndex() {
+   public Integer getIndex() {
         return index;
     }
 
@@ -32,4 +32,6 @@ public class LoadDataColumnConfig extends ColumnConfig {
         this.index = parsedNode.getChildValue(null, "index", Integer.class);
         this.header = parsedNode.getChildValue(null, "header", String.class);
     }
+
+
 }

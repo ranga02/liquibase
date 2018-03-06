@@ -3,6 +3,7 @@ package liquibase.resource;
 import liquibase.exception.UnexpectedLiquibaseException;
 
 import java.io.*;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -15,7 +16,7 @@ import java.util.zip.GZIPInputStream;
 public class FileSystemResourceAccessor extends AbstractResourceAccessor {
 
     private File baseDirectory;
-    private boolean readyForInit;
+    private boolean readyForInit = false;
 
     /**
      * Creates with no base directory. All files will be resolved exactly as they are given.
@@ -85,7 +86,7 @@ public class FileSystemResourceAccessor extends AbstractResourceAccessor {
         }
 
 
-        Set<InputStream> returnSet = new HashSet<>();
+        Set<InputStream> returnSet = new HashSet<InputStream>();
         returnSet.add(fileStream);
         return returnSet;
     }
@@ -111,10 +112,10 @@ public class FileSystemResourceAccessor extends AbstractResourceAccessor {
         }
 
         if (finalDir.exists() && finalDir.isDirectory()) {
-            Set<String> returnSet = new HashSet<>();
+            Set<String> returnSet = new HashSet<String>();
             getContents(finalDir, recursive, includeFiles, includeDirectories, path, returnSet);
 
-            SortedSet<String> rootPaths = new TreeSet<>(new Comparator<String>() {
+            SortedSet<String> rootPaths = new TreeSet<String>(new Comparator<String>() {
                 @Override
                 public int compare(String o1, String o2) {
                     int i = -1 * ((Integer) o1.length()).compareTo(o2.length());
@@ -134,7 +135,7 @@ public class FileSystemResourceAccessor extends AbstractResourceAccessor {
                 rootPaths.add(rootPath.replace("\\", "/"));
             }
 
-            Set<String> finalReturnSet = new LinkedHashSet<>();
+            Set<String> finalReturnSet = new LinkedHashSet<String>();
             for (String returnPath : returnSet) {
                 returnPath = returnPath.replace("\\", "/");
                 for (String rootPath : rootPaths) {

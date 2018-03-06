@@ -3,18 +3,15 @@ package liquibase.database.core;
 import liquibase.CatalogAndSchema;
 import liquibase.database.AbstractJdbcDatabase;
 import liquibase.database.DatabaseConnection;
+import liquibase.database.OfflineConnection;
 import liquibase.statement.SqlStatement;
 import liquibase.statement.core.RawSqlStatement;
 import liquibase.structure.DatabaseObject;
 import liquibase.exception.DatabaseException;
 import liquibase.executor.Executor;
 import liquibase.executor.ExecutorService;
-import liquibase.logging.LogService;
-import liquibase.logging.LogType;
-import liquibase.statement.SqlStatement;
+import liquibase.logging.LogFactory;
 import liquibase.statement.core.GetViewDefinitionStatement;
-import liquibase.statement.core.RawSqlStatement;
-import liquibase.structure.DatabaseObject;
 import liquibase.structure.core.Table;
 import liquibase.structure.core.View;
 
@@ -28,7 +25,12 @@ import java.util.Set;
  */
 public class SybaseDatabase extends AbstractJdbcDatabase {
     public static final String PRODUCT_NAME = "Adaptive Server Enterprise";
-    protected Set<String> systemTablesAndViews = new HashSet<>();
+    protected Set<String> systemTablesAndViews = new HashSet<String>();
+
+    @Override
+    public String getShortName() {
+        return "sybase";
+    }
 
     public SybaseDatabase() {
         super.setCurrentDateTimeFunction("GETDATE()");
@@ -54,11 +56,10 @@ public class SybaseDatabase extends AbstractJdbcDatabase {
         systemTablesAndViews.add("sysquerymetrics");
         systemTablesAndViews.add("syssegments");
         systemTablesAndViews.add("sysconstraints");
-    }
 
-    @Override
-    public String getShortName() {
-        return "sybase";
+        super.quotingStartCharacter ="[";
+        super.quotingEndCharacter="]";
+
     }
 
 /*    public void setConnection(Connection connection) {
@@ -123,7 +124,9 @@ public class SybaseDatabase extends AbstractJdbcDatabase {
 
     @Override
     public String getDefaultDriver(String url) {
-        if (url.startsWith("jdbc:xsybase")) {
+        if (url.startsWith("jdbc:sybase")) {
+            //@TODO : APPDBD - change to jconnect-7
+            //return "com.sybase.jdbc3.jdbc.SybDriver";
             return "com.sybase.jdbc4.jdbc.SybDriver";
         } else if (url.startsWith("jdbc:jtds:sybase")) {
             return "net.sourceforge.jtds.jdbc.Driver";
@@ -146,8 +149,8 @@ public class SybaseDatabase extends AbstractJdbcDatabase {
 	protected boolean generateAutoIncrementBy(BigInteger incrementBy) {
 		// not supported
 		return false;
-	}    
-    
+	}
+
     @Override
     public String getConcatSql(String... values) {
         StringBuffer returnString = new StringBuffer();
@@ -206,13 +209,11 @@ public class SybaseDatabase extends AbstractJdbcDatabase {
 
     @Override
     public boolean isSystemObject(DatabaseObject example) {
-        if ((example.getSchema() != null) && (example.getSchema().getName() != null)) {
-            if ((example instanceof Table) && ("sys".equals(example.getSchema().getName()) || "sybfi".equals(example
-                .getSchema().getName()))) {
+        if (example.getSchema() != null && example.getSchema().getName() != null) {
+            if (example instanceof Table && (example.getSchema().getName().equals("sys") || example.getSchema().getName().equals("sybfi"))) {
                 return true;
             }
-            if ((example instanceof View) && ("sys".equals(example.getSchema().getName()) || "sybfi".equals(example
-                .getSchema().getName()))) {
+            if (example instanceof View && (example.getSchema().getName().equals("sys") || example.getSchema().getName().equals("sybfi"))) {
                 return true;
             }
         }
@@ -265,8 +266,8 @@ public class SybaseDatabase extends AbstractJdbcDatabase {
         try {
             return getConnection().getDatabaseMajorVersion();
         } catch (UnsupportedOperationException e) {
-        	LogService.getLog(getClass())
-        		.warning(LogType.LOG, "Your JDBC driver does not support getDatabaseMajorVersion(). Consider upgrading it.");
+        	LogFactory.getLogger()
+        		.warning("Your JDBC driver does not support getDatabaseMajorVersion(). Consider upgrading it.");
             return -1;
         }
     }
@@ -284,8 +285,8 @@ public class SybaseDatabase extends AbstractJdbcDatabase {
         try {
             return getConnection().getDatabaseMinorVersion();
         } catch (UnsupportedOperationException e) {
-        	LogService.getLog(getClass())
-    			.warning(LogType.LOG, "Your JDBC driver does not support getDatabaseMajorVersion(). Consider upgrading it.");
+        	LogFactory.getLogger()
+    			.warning("Your JDBC driver does not support getDatabaseMajorVersion(). Consider upgrading it.");
             return -1;
         }
     }
@@ -296,38 +297,20 @@ public class SybaseDatabase extends AbstractJdbcDatabase {
     }
 
     @Override
-    public String quoteObject(String objectName, Class<? extends DatabaseObject> objectType) {
+    public String escapeObjectName(String objectName, Class<? extends DatabaseObject> objectType) {
         if (objectName == null) {
             return null;
         }
-        return getQuotingStartCharacter() + objectName + getQuotingEndCharacter();
-    }
-
-    @Override
-    protected boolean mustQuoteObjectName(String objectName, Class<? extends DatabaseObject> objectType) {
         if (objectName.contains("(")) { //probably a function
-            return false;
+            return objectName;
         }
-        return super.mustQuoteObjectName(objectName, objectType);
+        return this.quotingStartCharacter+objectName+this.quotingEndCharacter;
     }
 
+    //@TODO : APPDBD - enable this as sybase supports this feature
     @Override
-    protected String getQuotingStartCharacter() {
-        return "[";
-    }
-
-    @Override
-    protected String getQuotingEndCharacter() {
-        return "]";
-    }
-
-    @Override
-    public boolean requiresExplicitNullForColumns() {
-        /* SAP Adaptive Server Enterprise and, by extension, SQL Anywhere in ASE compatiblity mode have the
-         * strange requirement of setting the nullability of a column to NOT NULL if neither NULL nor
-         * NOT NULL are specified. See:
-         * http://dcx.sap.com/index.html#sqla170/en/html/819378356ce21014a17f8d51529119ee.html
-         */
+    public boolean supportsCatalogInObjectName(final Class<? extends DatabaseObject> type) {
         return true;
     }
+
 }

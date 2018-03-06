@@ -1,7 +1,6 @@
 package liquibase.util;
 
-import liquibase.logging.LogService;
-import liquibase.logging.LogType;
+import liquibase.logging.LogFactory;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -20,7 +19,7 @@ public class NetUtil {
         // That is why windows should be treated differently to linux/unix and use the
         // default way of getting the localhost.
         String osName = System.getProperty("os.name");
-        if ((osName != null) && osName.toLowerCase().contains("windows")) {
+        if (osName != null && osName.toLowerCase().contains("windows")) {
             return InetAddress.getLocalHost();
         }
 
@@ -52,8 +51,8 @@ public class NetUtil {
     public static String getLocalHostAddress() throws UnknownHostException, SocketException {
         try {
             return getLocalHost().getHostAddress();
-        } catch (Exception e) {
-            LogService.getLog(NetUtil.class).debug(LogType.LOG, "Error getting hostname", e);
+        } catch (Throwable e) {
+            LogFactory.getInstance().getLog().debug("Error getting hostname", e);
             return "unknown";
         }
     }
@@ -67,8 +66,8 @@ public class NetUtil {
     public static String getLocalHostName() throws UnknownHostException, SocketException {
         try {
             return getLocalHost().getHostName();
-        } catch (Exception e) {
-            LogService.getLog(NetUtil.class).debug(LogType.LOG, "Error getting hostname", e);
+        } catch (Throwable e) {
+            LogFactory.getInstance().getLog().debug("Error getting hostname", e);
             return "unknown";
         }
     }

@@ -2,15 +2,15 @@ package liquibase.lockservice;
 
 import liquibase.database.Database;
 import liquibase.database.jvm.JdbcConnection;
+import liquibase.executor.*;
 import liquibase.exception.DatabaseException;
 import liquibase.exception.LockException;
-import liquibase.executor.ExecutorService;
-import liquibase.logging.LogService;
-import liquibase.logging.LogType;
 import liquibase.test.TestContext;
 import org.junit.After;
-import org.junit.Before;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import org.junit.Test;
+import org.junit.Before;
 
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -32,26 +32,12 @@ public class LockServiceExecuteTest {
                 try {
                     statement = ((JdbcConnection) database.getConnection()).getUnderlyingConnection().createStatement();
                     try {
-                        String sql = "DROP TABLE " +
-                                database.escapeTableName(
-                                        database.getLiquibaseCatalogName(),
-                                        database.getLiquibaseSchemaName(),
-                                        database.getDatabaseChangeLogTableName()
-                                );
-                        LogService.getLog(getClass()).info(LogType.WRITE_SQL, sql);
-                        statement.execute(sql);
+                        statement.execute("drop table " + database.escapeTableName(database.getLiquibaseCatalogName(), database.getLiquibaseSchemaName(), database.getDatabaseChangeLogTableName()));
                     } catch (Exception e) {
                         //ok
                     }
                     try {
-                        String sql = "DROP TABLE " +
-                                database.escapeTableName(
-                                        database.getLiquibaseCatalogName(),
-                                        database.getLiquibaseSchemaName(),
-                                        database.getDatabaseChangeLogLockTableName()
-                                );
-                        LogService.getLog(getClass()).info(LogType.WRITE_SQL, sql);
-                        statement.execute(sql);
+                        statement.execute("drop table " + database.escapeTableName(database.getLiquibaseCatalogName(), database.getLiquibaseSchemaName(), database.getDatabaseChangeLogLockTableName()));
                     } catch (Exception e) {
                         //ok
                     }

@@ -1,42 +1,29 @@
 package liquibase.dbtest.oracle;
 
-import liquibase.Liquibase;
-import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.dbtest.AbstractIntegrationTest;
-import liquibase.exception.LiquibaseException;
+import liquibase.Liquibase;
 import liquibase.exception.ValidationFailedException;
 import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import java.sql.ResultSet;
 import java.sql.Statement;
+import java.sql.ResultSet;
 import java.util.Date;
 
-import static junit.framework.TestCase.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeNotNull;
-
 /**
- * Integration test for Oracle Database, Version 11gR2 and above.
+ * create tablespace liquibase2 datafile 'C:\ORACLEXE\ORADATA\XE\LIQUIBASE2.DBF' SIZE 5M autoextend on next 5M
  */
 public class OracleIntegrationTest extends AbstractIntegrationTest {
-    String indexOnSchemaChangeLog;
-    String viewOnSchemaChangeLog;
+
+    private String indexOnSchemaChangeLog;
+    private String viewOnSchemaChangeLog;
 
     public OracleIntegrationTest() throws Exception {
-        super("oracle", DatabaseFactory.getInstance().getDatabase("oracle"));
-         indexOnSchemaChangeLog = "changelogs/oracle/complete/indexOnSchema.xml";
-         viewOnSchemaChangeLog = "changelogs/oracle/complete/viewOnSchema.xml";
-        // Respect a user-defined location for sqlnet.ora, tnsnames.ora etc. stored in the environment
-        // variable TNS_ADMIN. This allowes the use of TNSNAMES.
-        if (System.getenv("TNS_ADMIN") != null)
-            System.setProperty("oracle.net.tns_admin",System.getenv("TNS_ADMIN"));
-    }
-
-    @Override
-    protected boolean isDatabaseProvidedByTravisCI() {
-        // Seems unlikely to ever be provided by Travis, as it's not free
-        return false;
+        super("oracle", "jdbc:oracle:thin:@" + getDatabaseServerHostname("Oracle") + ":1521:XE");
+        this.indexOnSchemaChangeLog = "changelogs/oracle/complete/indexOnSchema.xml";
+        this.viewOnSchemaChangeLog = "changelogs/oracle/complete/viewOnSchema.xml";
     }
 
     @Override
@@ -47,10 +34,12 @@ public class OracleIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     public void indexCreatedOnCorrectSchema() throws Exception {
-        assumeNotNull(this.getDatabase());
+         if (this.getDatabase() == null) {
+            return;
+        }
 
         Liquibase liquibase = createLiquibase(this.indexOnSchemaChangeLog);
-        clearDatabase();
+        clearDatabase(liquibase);
 
         try {
             liquibase.update(this.contexts);
@@ -67,7 +56,7 @@ public class OracleIntegrationTest extends AbstractIntegrationTest {
 
         String owner = indexOwner.getString("owner");
 
-        assertEquals("LBCAT2", owner);
+        assertEquals("LIQUIBASEB",owner);
 
         // check that the automatically rollback now works too
         try {
@@ -84,10 +73,12 @@ public class OracleIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     public void viewCreatedOnCorrectSchema() throws Exception {
-        assumeNotNull(this.getDatabase());
+         if (this.getDatabase() == null) {
+            return;
+        }
 
         Liquibase liquibase = createLiquibase(this.viewOnSchemaChangeLog);
-        clearDatabase();
+        clearDatabase(liquibase);
 
         try {
             liquibase.update(this.contexts);
@@ -104,7 +95,7 @@ public class OracleIntegrationTest extends AbstractIntegrationTest {
 
         String owner = indexOwner.getString("owner");
 
-        assertEquals("LBCAT2", owner);
+        assertEquals("LIQUIBASEB",owner);
 
         // check that the automatically rollback now works too
         try {
@@ -117,10 +108,12 @@ public class OracleIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     public void smartDataLoad() throws Exception {
-        assumeNotNull(this.getDatabase());
+        if (this.getDatabase() == null) {
+            return;
+        }
 
         Liquibase liquibase = createLiquibase("changelogs/common/smartDataLoad.changelog.xml");
-        clearDatabase();
+        clearDatabase(liquibase);
 
         try {
             liquibase.update(this.contexts);

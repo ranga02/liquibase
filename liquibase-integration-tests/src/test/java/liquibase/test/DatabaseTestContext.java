@@ -1,31 +1,30 @@
 package liquibase.test;
 
 import liquibase.database.*;
-import liquibase.database.core.AbstractDb2Database;
+import liquibase.database.core.DB2Database;
 import liquibase.database.example.ExampleCustomDatabase;
 import liquibase.database.core.SQLiteDatabase;
-import liquibase.database.example.ExampleCustomDatabase;
-import liquibase.database.jvm.JdbcConnection;
-import liquibase.exception.DatabaseException;
-import liquibase.logging.LogService;
-import liquibase.logging.LogType;
-import liquibase.resource.ResourceAccessor;
 import liquibase.sdk.database.MockDatabase;
+import liquibase.database.jvm.JdbcConnection;
+import liquibase.dbtest.AbstractIntegrationTest;
+import liquibase.resource.ResourceAccessor;
+import liquibase.exception.DatabaseException;
 
-import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.SQLException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
+import java.sql.SQLException;
+import java.sql.Driver;
+import java.sql.Connection;
 
 public class DatabaseTestContext {
-    public static final String ALT_CATALOG = "LIQUIBASEC";
-    public static final String ALT_SCHEMA = "LIQUIBASEB";
-    public static final String ALT_TABLESPACE = "LIQUIBASE2";
-    private static final String TEST_DATABASES_PROPERTY = "test.databases";
     private static DatabaseTestContext instance = new DatabaseTestContext();
+    
+    private Set<Database> availableDatabases = new HashSet<Database>();
+    private Set<Database> allDatabases;
+    private Set<DatabaseConnection> availableConnections;
+
     private final DatabaseTestURL[] DEFAULT_TEST_DATABASES = new DatabaseTestURL[]{
-    /* @todo Extract all remaining connection string examples into liquibase.integrationtest.properties, then delete this code block. */
-    /*
             new DatabaseTestURL("Cache","jdbc:Cache://"+AbstractIntegrationTest.getDatabaseServerHostname("Cache")+":1972/liquibase"),
             new DatabaseTestURL("DB2","jdbc:db2://"+AbstractIntegrationTest.getDatabaseServerHostname("DB2")+":50000/liquibas"),
             new DatabaseTestURL("Derby","jdbc:derby:liquibase;create=true"),
@@ -41,70 +40,24 @@ public class DatabaseTestContext {
             new DatabaseTestURL("SAPDB","jdbc:sapdb://"+AbstractIntegrationTest.getDatabaseServerHostname("sapdb")+"/liquibas"),
             new DatabaseTestURL("SQLite","jdbc:sqlite:/liquibase.db"),
             new DatabaseTestURL("SybaseJtds","jdbc:sybase:Tds:"+AbstractIntegrationTest.getDatabaseServerHostname("sybase")+":9810/servicename=prior")
-            */
     };
-    private Set<Database> availableDatabases = new HashSet<Database>();
-    private Set<Database> allDatabases;
-    private Set<DatabaseConnection> availableConnections;
+
+
     private Map<String, DatabaseConnection> connectionsByUrl = new HashMap<String, DatabaseConnection>();
     private Map<String, Boolean> connectionsAttempted = new HashMap<String, Boolean>();
+    public static final String ALT_CATALOG = "LIQUIBASEC";
+    public static final String ALT_SCHEMA = "LIQUIBASEB";
+    public static final String ALT_TABLESPACE = "LIQUIBASE2";
+    private static final String TEST_DATABASES_PROPERTY = "test.databases";
     private ResourceAccessor resourceAccessor;
 
-    public static DatabaseTestContext getInstance() {
-        return instance;
-    }
-
-    /**
-     * Makes a best effort to gracefully shut down a (possible open) databaseConnection and ignores any
-     * errors that happen during that process.
-     *
-     * @param databaseConnection
-     */
-    private static void shutdownConnection(JdbcConnection databaseConnection) {
-        try {
-            try {
-                if (!databaseConnection.getUnderlyingConnection().getAutoCommit()) {
-                    databaseConnection.getUnderlyingConnection().rollback();
-                }
-            } catch (SQLException e) {
-                // Ignore. If rollback fails or is impossible, there is nothing we can do about it.
-            }
-
-            // Close the JDBC connection
-            databaseConnection.getUnderlyingConnection().close();
-        } catch (SQLException e) {
-            LogService.getLog(DatabaseTestContext.class).warning(LogType.USER_MESSAGE,
-                "Could not close the following connection: " + databaseConnection.getURL(), e);
-        }
-    }
-
-    /**
-     * Returns a DatabaseConnection for a givenUrl is one is already open. If not, attempts to create it, but only
-     * if a previous attempt at creating the connection has NOT failed (to prevent unnecessary connection attempts
-     * during the integration tests).
-     *
-     * @param givenUrl The JDBC URL to connect to
-     * @param username the user name to use to log in to the instance (may be null, esp. for embedded DBMS)
-     * @param password the password for the username (may be null)
-     * @return a DatabaseConnection if one has been established or fetched from the cache successfully, null otherwise
-     * @throws Exception if an error occurs while trying to get the connection
-     */
-    private DatabaseConnection openConnection(final String givenUrl,
-                                              final String username, final String password) throws Exception {
-        // Insert the temp dir path and ensure our replacement ends with /
-        String tempDir = System.getProperty("java.io.tmpdir");
-        if (!tempDir.endsWith(System.getProperty("file.separator")))
-            tempDir += System.getProperty("file.separator");
-
-        String tempUrl = givenUrl.replace("***TEMPDIR***/", tempDir);
-        final String url = tempUrl;
-
+    private DatabaseConnection openConnection(final String url) throws Exception {
         if (connectionsAttempted.containsKey(url)) {
             JdbcConnection connection = (JdbcConnection) connectionsByUrl.get(url);
             if (connection == null) {
                 return null;
             } else if (connection.getUnderlyingConnection().isClosed()){
-                connectionsByUrl.put(url, openDatabaseConnection(url, username, password));
+                connectionsByUrl.put(url, openDatabaseConnection(url));
             }
             return connectionsByUrl.get(url);
         }
@@ -126,7 +79,7 @@ public class DatabaseTestContext {
             }
         }
 
-        DatabaseConnection connection = openDatabaseConnection(url, username,password);
+        DatabaseConnection connection = openDatabaseConnection(url);
         if (connection == null) {
             return null;
         }
@@ -140,26 +93,23 @@ public class DatabaseTestContext {
 
         try {
             if (url.startsWith("jdbc:hsql")) {
-                String sql = "CREATE SCHEMA " + ALT_SCHEMA + " AUTHORIZATION DBA";
-                LogService.getLog(getClass()).info(LogType.WRITE_SQL, sql);
-                ((JdbcConnection) databaseConnection).getUnderlyingConnection().createStatement().execute(sql);
+                ((JdbcConnection) databaseConnection).getUnderlyingConnection().createStatement().execute("CREATE SCHEMA " + ALT_SCHEMA + " AUTHORIZATION DBA");
             } else if (url.startsWith("jdbc:sqlserver")
-                || url.startsWith("jdbc:postgresql")
-                || url.startsWith("jdbc:h2")) {
-                String sql = "CREATE SCHEMA " + ALT_SCHEMA;
-                LogService.getLog(getClass()).info(LogType.WRITE_SQL, sql);
-                ((JdbcConnection) databaseConnection).getUnderlyingConnection().createStatement().execute(sql);
+                    || url.startsWith("jdbc:postgresql")
+                    || url.startsWith("jdbc:h2")) {
+                ((JdbcConnection) databaseConnection).getUnderlyingConnection().createStatement().execute("CREATE SCHEMA " + ALT_SCHEMA);
             }
             if (!databaseConnection.getAutoCommit()) {
                 databaseConnection.commit();
             }
         } catch (SQLException e) {
-            // schema already exists
+//            e.printStackTrace();
+            ; //schema already exists
         } finally {
             try {
                 databaseConnection.rollback();
             } catch (DatabaseException e) {
-                if (database instanceof AbstractDb2Database) {
+                if (database instanceof DB2Database) {
 //                    expected, there is a problem with it
                 } else {
                     throw e;
@@ -173,29 +123,31 @@ public class DatabaseTestContext {
 
             @Override
             public void run() {
-                shutdownConnection((JdbcConnection) databaseConnection);
+                try {
+                    try {
+                        if (!((JdbcConnection) databaseConnection).getUnderlyingConnection().getAutoCommit()) {
+                            ((JdbcConnection) databaseConnection).getUnderlyingConnection().rollback();
+                        }
+                    } catch (SQLException e) {
+                        ;
+                    }
+
+
+                    ((JdbcConnection) databaseConnection).getUnderlyingConnection().close();
+                } catch (SQLException e) {
+                    System.out.println("Could not close " + url);
+                    e.printStackTrace();
+                }
             }
         }));
 
         return databaseConnection;
     }
 
-    /**
-     * Ensures that the next attempt to call openConnection for the given JDBC URL returns a fresh connection.
-     *
-     * @param url The JDBC connection URL to remove from the cache pool.
-     */
-    public void closeConnection(String url) {
-        JdbcConnection conn = (JdbcConnection) connectionsByUrl.get(url);
-        if (conn != null) {
-            shutdownConnection(conn);
-            connectionsByUrl.remove(url);
-            connectionsAttempted.remove(url);
-        }
-    }
+    public DatabaseConnection openDatabaseConnection(String url) throws Exception {
 
-    public DatabaseConnection openDatabaseConnection(String url,
-        String username, String password) throws Exception {
+        String username = getUsername(url);
+        String password = getPassword(url);
 
         JUnitJDBCDriverClassLoader jdbcDriverLoader = JUnitJDBCDriverClassLoader.getInstance();
         final Driver driver;
@@ -228,6 +180,31 @@ public class DatabaseTestContext {
         return new JdbcConnection(connection);
     }
 
+    //@TODO: APPDBD - modified getUsername
+    private String getUsername(String url) {
+        if (url.startsWith("jdbc:hsqldb")) {
+            return "sa";
+        } else if (url.contains("sybase")) {
+            return System.getenv("SYBUSER");
+        }
+        return "lbuser";
+    }
+
+    //@TODO: APPDBD - modified getPassword
+    private String getPassword(String url) {
+        if (url.startsWith("jdbc:hsqldb")) {
+            return "";
+        } else if (url.contains("sybase")) {
+            return System.getenv("SYBPASSWD");
+        }
+        return "lbuser";
+    }
+
+    public static DatabaseTestContext getInstance() {
+        return instance;
+    }
+
+
     public DatabaseTestURL[] getTestUrls() {
         return DEFAULT_TEST_DATABASES;
     }
@@ -240,8 +217,9 @@ public class DatabaseTestContext {
 
             List<Database> toRemove = new ArrayList<Database>();
             for (Database database : allDatabases) {
-                if ((database instanceof SQLiteDatabase) //todo: re-enable sqlite testing
-                    || (database instanceof MockDatabase) || (database instanceof ExampleCustomDatabase)) {
+                if (database instanceof SQLiteDatabase //todo: re-enable sqlite testing
+                        || database instanceof MockDatabase
+                        || database instanceof ExampleCustomDatabase) {
                     toRemove.add(database);
                 }
             }
@@ -251,7 +229,7 @@ public class DatabaseTestContext {
     }
 
     public Set<Database> getAvailableDatabases() throws Exception {
-        if (availableDatabases.isEmpty()) {
+        if (availableDatabases.size() == 0) {
             for (DatabaseConnection conn : getAvailableConnections()) {
                     availableDatabases.add(DatabaseFactory.getInstance().findCorrectDatabaseImplementation(conn));
             }
@@ -273,8 +251,10 @@ public class DatabaseTestContext {
         if (availableConnections == null) {
             availableConnections = new HashSet<DatabaseConnection>();
             for (DatabaseTestURL url : getTestUrls()) {
-                DatabaseConnection connection = openConnection(url.getUrl(), url.getUsername(), url.getPassword());
-
+//                if (url.indexOf("jtds") >= 0) {
+//                    continue;
+//                }
+                DatabaseConnection connection = openConnection(adaptTestURLWithConfiguredHost(url));
                 if (connection != null) {
                     availableConnections.add(connection);
                 }
@@ -292,13 +272,17 @@ public class DatabaseTestContext {
         return availableConnections;
     }
 
-    public DatabaseConnection getConnection(String url, String username, String password) throws Exception {
-        return openConnection(url, username, password);
+    protected String adaptTestURLWithConfiguredHost(DatabaseTestURL url) throws Exception {
+        return url.getUrl().replaceAll("localhost", AbstractIntegrationTest.getDatabaseServerHostname(url.getDatabaseManager()));
+    }
+
+    public DatabaseConnection getConnection(String url) throws Exception {
+        return openConnection(url);
     }
 
     public String getTestUrl(Database database) throws Exception {
         for (DatabaseTestURL turl : getTestUrls()) {
-            String url=turl.getUrl();
+            String url=adaptTestURLWithConfiguredHost(turl);
             if (database.getDefaultDriver(url) != null) {
                 return url;
             }

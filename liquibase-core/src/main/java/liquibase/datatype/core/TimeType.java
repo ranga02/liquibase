@@ -1,36 +1,41 @@
 package liquibase.datatype.core;
 
-import liquibase.change.core.LoadDataChange;
-import liquibase.database.Database;
 import liquibase.database.core.*;
 import liquibase.datatype.DataTypeInfo;
 import liquibase.datatype.DatabaseDataType;
 import liquibase.datatype.LiquibaseDataType;
+import liquibase.exception.DatabaseException;
 import liquibase.statement.DatabaseFunction;
+import liquibase.database.Database;
 import liquibase.util.StringUtils;
 
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 
 @DataTypeInfo(name="time", aliases = {"java.sql.Types.TIME", "java.sql.Time", "timetz"}, minParameters = 0, maxParameters = 0, priority = LiquibaseDataType.PRIORITY_DEFAULT)
 public class TimeType  extends LiquibaseDataType {
-
-    protected static final int MSSQL_TYPE_TIME_DEFAULT_PRECISION = 7;
 
     @Override
     public DatabaseDataType toDatabaseDataType(Database database) {
         String originalDefinition = StringUtils.trimToEmpty(getRawDefinition());
         if (database instanceof InformixDatabase) {
-            return new DatabaseDataType("DATETIME HOUR TO FRACTION", 5);
+            return new DatabaseDataType("INTERVAL HOUR TO FRACTION", 5);
         }
         if (database instanceof MSSQLDatabase) {
             Object[] parameters = getParameters();
-
-            // If the scale for time is the database default anyway, omit it.
-            if ( (parameters.length >= 1) &&
-                (Integer.parseInt(parameters[0].toString()) == (database.getDefaultScaleForNativeDataType("time"))) ) {
-                parameters = new Object[0];
+            try {
+                if (database.getDatabaseMajorVersion() <= 9) {
+                    return new DatabaseDataType(database.escapeDataTypeName("datetime"));
+                }
+            } catch (DatabaseException e) {
+                //assume greater than sql 2008 and TIME will work
+            }
+            if (parameters.length == 0) {
+                parameters = new Object[] { 7 };
+            } else if (parameters.length > 2) {
+                parameters = Arrays.copyOfRange(parameters, 0, 2);
             }
             return new DatabaseDataType(database.escapeDataTypeName("time"), parameters);
         }
@@ -38,13 +43,13 @@ public class TimeType  extends LiquibaseDataType {
         if (database instanceof MySQLDatabase) {
             boolean supportsParameters = true;
             try {
-                supportsParameters = (database.getDatabaseMajorVersion() >= 5) && (database.getDatabaseMinorVersion()
-                    >= 6) && (((MySQLDatabase) database).getDatabasePatchVersion() >= 4);
+                supportsParameters = database.getDatabaseMajorVersion() >= 5
+                        && database.getDatabaseMinorVersion() >= 6
+                        && ((MySQLDatabase) database).getDatabasePatchVersion() >= 4;
             } catch (Exception ignore) {
                 //assume supports parameters
             }
-            if (supportsParameters && (getParameters().length > 0) && (Integer.parseInt(getParameters()[0].toString()
-            ) <= 6)) {
+            if (supportsParameters && getParameters().length > 0 && Integer.parseInt(getParameters()[0].toString()) <= 6) {
                 return new DatabaseDataType(getName(), getParameters());
             } else {
                 return new DatabaseDataType(getName());
@@ -68,7 +73,7 @@ public class TimeType  extends LiquibaseDataType {
 
     @Override
     public String objectToSql(Object value, Database database) {
-        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
+        if (value == null || value.toString().equalsIgnoreCase("null")) {
             return null;
         }  else if (value instanceof DatabaseFunction) {
             return database.generateDatabaseFunctionValue((DatabaseFunction) value);
@@ -85,7 +90,7 @@ public class TimeType  extends LiquibaseDataType {
             return value;
         }
 
-        if (database instanceof AbstractDb2Database) {
+        if (database instanceof DB2Database) {
             return value.replaceFirst("^\"SYSIBM\".\"TIME\"\\('", "").replaceFirst("'\\)", "");
         }
         if (database instanceof DerbyDatabase) {
@@ -95,7 +100,7 @@ public class TimeType  extends LiquibaseDataType {
         try {
             DateFormat timeFormat = getTimeFormat(database);
 
-            if ((database instanceof OracleDatabase) && value.matches("to_date\\('\\d+:\\d+:\\d+', 'HH24:MI:SS'\\)")) {
+            if (database instanceof OracleDatabase && value.matches("to_date\\('\\d+:\\d+:\\d+', 'HH24:MI:SS'\\)")) {
                 timeFormat = new SimpleDateFormat("HH:mm:s");
                 value = value.replaceFirst(".*?'", "").replaceFirst("',.*","");
             }
@@ -106,17 +111,12 @@ public class TimeType  extends LiquibaseDataType {
         }
     }
 
-    @Override
-    public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
-        return LoadDataChange.LOAD_DATA_TYPE.DATE;
-    }
-
     private boolean zeroTime(String stringVal) {
-        return "".equals(stringVal.replace("-", "").replace(":", "").replace(" ", "").replace("0", ""));
+        return stringVal.replace("-","").replace(":", "").replace(" ","").replace("0","").equals("");
     }
 
     protected DateFormat getTimeFormat(Database database) {
-        if (database instanceof AbstractDb2Database) {
+        if (database instanceof DB2Database) {
             return new SimpleDateFormat("HH.mm.ss");
         }
         return new SimpleDateFormat("HH:mm:ss");

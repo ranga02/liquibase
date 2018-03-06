@@ -1,14 +1,12 @@
 package liquibase.datatype.core;
 
-import liquibase.change.core.LoadDataChange;
+import java.util.Arrays;
+
 import liquibase.database.Database;
-import liquibase.database.core.InformixDatabase;
-import liquibase.database.core.MSSQLDatabase;
+import liquibase.database.core.*;
 import liquibase.datatype.DataTypeInfo;
 import liquibase.datatype.DatabaseDataType;
 import liquibase.datatype.LiquibaseDataType;
-
-import java.util.Arrays;
 
 @DataTypeInfo(name = "decimal", aliases = { "java.sql.Types.DECIMAL", "java.math.BigDecimal" }, minParameters = 0, maxParameters = 2, priority = LiquibaseDataType.PRIORITY_DEFAULT)
 public class DecimalType  extends LiquibaseDataType {
@@ -23,12 +21,7 @@ public class DecimalType  extends LiquibaseDataType {
         this.autoIncrement = autoIncrement;
     }
 
-    @Override
-    public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
-        return LoadDataChange.LOAD_DATA_TYPE.NUMERIC;
-    }
-
-    @Override
+  @Override
   public DatabaseDataType toDatabaseDataType(Database database) {
     if (database instanceof MSSQLDatabase) {
       Object[] parameters = getParameters();
@@ -43,7 +36,7 @@ public class DecimalType  extends LiquibaseDataType {
     }
     if (database instanceof InformixDatabase) {
 
-      if((getParameters() != null) && (getParameters().length == 2)) {
+      if(getParameters() != null && getParameters().length == 2) {
 
         // Don't use 255 as a scale because it is invalid, 
         // use only 1 argument in this special case

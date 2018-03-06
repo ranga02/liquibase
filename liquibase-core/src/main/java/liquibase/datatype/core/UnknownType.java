@@ -1,22 +1,18 @@
 package liquibase.datatype.core;
 
-import liquibase.change.core.LoadDataChange;
 import liquibase.database.Database;
+import liquibase.database.core.DB2Database;
 import liquibase.database.core.MSSQLDatabase;
+import liquibase.database.core.MySQLDatabase;
 import liquibase.database.core.OracleDatabase;
 import liquibase.datatype.DatabaseDataType;
 import liquibase.datatype.LiquibaseDataType;
 import liquibase.statement.DatabaseFunction;
 
 import java.util.Arrays;
+import java.util.Collections;
 
-/**
- * Container for a data type that is not covered by any implementation in {@link liquibase.datatype.core}. Most often,
- * this class is used when a DBMS-specific data type is given of which Liquibase does not know anything about yet.
- */
 public class UnknownType extends LiquibaseDataType {
-
-    private boolean autoIncrement;
 
     public UnknownType() {
         super("UNKNOWN", 0, 2);
@@ -30,6 +26,8 @@ public class UnknownType extends LiquibaseDataType {
         super(name, minParameters, maxParameters);
     }
 
+    private boolean autoIncrement;
+
     public boolean isAutoIncrement() {
         return autoIncrement;
     }
@@ -41,7 +39,7 @@ public class UnknownType extends LiquibaseDataType {
     @Override
     public DatabaseDataType toDatabaseDataType(Database database) {
         int dataTypeMaxParameters;
-        if ("enum".equalsIgnoreCase(getName()) || "set".equalsIgnoreCase(getName())) {
+        if (getName().equalsIgnoreCase("enum") || getName().equalsIgnoreCase("set")) {
             dataTypeMaxParameters = Integer.MAX_VALUE;
         } else {
             dataTypeMaxParameters = database.getDataTypeMaxParameters(getName());
@@ -49,21 +47,17 @@ public class UnknownType extends LiquibaseDataType {
         Object[] parameters = getParameters();
 
         if (database instanceof OracleDatabase) {
-            if ("LONG".equalsIgnoreCase(getName())
-                    || "BFILE".equalsIgnoreCase(getName())
-                    || "ROWID".equalsIgnoreCase(getName())
-                    || "ANYDATA".equalsIgnoreCase(getName())
-                    || "SDO_GEOMETRY".equalsIgnoreCase(getName())
+            if (getName().equalsIgnoreCase("LONG")
+                    || getName().equalsIgnoreCase("BFILE")
+                    || getName().equalsIgnoreCase("ROWID")
+                    || getName().equalsIgnoreCase("ANYDATA")
+                    || getName().equalsIgnoreCase("SDO_GEOMETRY")
                     ) {
                 parameters = new Object[0];
-            } else if ("RAW".equalsIgnoreCase(getName())) {
-                return new DatabaseDataType(getName(), parameters);
             } else if (getName().toUpperCase().startsWith("INTERVAL ")) {
                 return new DatabaseDataType(getName().replaceAll("\\(\\d+\\)", ""));
-            } else {
-                // probably a user defined type. Can't call getUserDefinedTypes() to know for sure, since that returns
-                // all types including system types.
-                return new DatabaseDataType(getName().toUpperCase());
+            } else if (((OracleDatabase) database).getUserDefinedTypes().contains(getName().toUpperCase())) {
+                return new DatabaseDataType(getName().toUpperCase()); //user defined tye
             }
         }
 
@@ -71,13 +65,7 @@ public class UnknownType extends LiquibaseDataType {
             parameters = Arrays.copyOfRange(parameters, 0, dataTypeMaxParameters);
         }
         DatabaseDataType type;
-        if (database instanceof MSSQLDatabase) {
-            if ( (parameters.length >= 1) &&
-                (this.getRawDefinition().matches("(?i)\\[?datetimeoffset\\]?.*")) &&
-                (Integer.parseInt(parameters[0].toString()) ==
-                    (database.getDefaultScaleForNativeDataType("datetimeoffset"))) ) {
-                parameters = new Object[0];
-            }
+        if (database instanceof  MSSQLDatabase) {
             type = new DatabaseDataType(database.escapeDataTypeName(getName()), parameters);
         } else {
             type = new DatabaseDataType(getName().toUpperCase(), parameters);
@@ -94,10 +82,5 @@ public class UnknownType extends LiquibaseDataType {
         } else {
             return "'"+super.objectToSql(value, database)+"'";
         }
-    }
-
-    @Override
-    public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
-        return LoadDataChange.LOAD_DATA_TYPE.STRING;
     }
 }

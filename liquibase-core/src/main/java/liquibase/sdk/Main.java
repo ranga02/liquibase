@@ -12,17 +12,13 @@ import java.util.*;
 
 public class Main {
 
-    private boolean debug;
+    private boolean debug = false;
 
     private CommandLine globalArguments;
     private String command;
-    private List<String> commandArgs = new ArrayList<>();
+    private List<String> commandArgs = new ArrayList<String>();
 
     private Options globalOptions;
-
-    public Main() {
-        globalOptions = new Options();
-    }
 
     public static void main(String[] args) {
         Main main = new Main();
@@ -36,15 +32,15 @@ public class Main {
                 throw new UserError("No command passed");
             }
 
-            if ("help".equals(main.command)) {
+            if (main.command.equals("help")) {
                 main.printHelp();
                 return;
             }
 
             LiquibaseCommand command;
             CommandLineParser commandParser = new GnuParser();
-            if ("convert".equals(main.command)) {
-                command = new ConvertCommand();
+            if (main.command.equals("convert")) {
+                command = new ConvertCommand(main);
 
                 Options options = new Options();
                 options.addOption(OptionBuilder.hasArg().withDescription("Original changelog").isRequired().create("src"));
@@ -78,11 +74,15 @@ public class Main {
         }
     }
 
+    public Main() {
+        globalOptions = new Options();
+    }
+
     public void init(String[] args) throws UserError {
         Context.reset();
         CommandLineParser globalParser = new GnuParser();
 
-        List<String> globalArgs = new ArrayList<>();
+        List<String> globalArgs = new ArrayList<String>();
 
         boolean inGlobal = true;
         for (String arg : args) {
@@ -136,7 +136,7 @@ public class Main {
             if (dir.listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
-                    return "liquibase-sdk.bat".equals(name);
+                    return name.equals("liquibase-sdk.bat");
                 }
             }).length > 0) {
                 return dir;
@@ -145,8 +145,7 @@ public class Main {
             dir = dir.getParentFile();
         }
 
-        throw new UnexpectedLiquibaseException("Could not find Liquibase SDK home. Please run liquibase-sdk from the " +
-            "liquibase/sdk directory or one of it's sub directories");
+        throw new UnexpectedLiquibaseException("Could not find Liquibase SDK home. Please run liquibase-sdk from the liquibase/sdk directory or one of it's sub directories");
     }
 
     public String getCommand() {
@@ -206,7 +205,7 @@ public class Main {
     }
 
     public String getPath(String... possibleFileNames) {
-        Set<String> fileNames = new HashSet<>();
+        Set<String> fileNames = new HashSet<String>();
 
         for (String dir : getPath().split("[:;]")) {
             for (String fileName : possibleFileNames) {
@@ -226,9 +225,7 @@ public class Main {
     }
 
     private static class UserError extends RuntimeException {
-    
-        private static final long serialVersionUID = 6926190469964122370L;
-    
+
         public UserError(String message) {
             super(message);
         }

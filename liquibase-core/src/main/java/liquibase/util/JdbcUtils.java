@@ -2,6 +2,8 @@ package liquibase.util;
 
 import liquibase.database.Database;
 import liquibase.exception.DatabaseException;
+import liquibase.logging.LogFactory;
+import liquibase.logging.Logger;
 import liquibase.structure.core.Column;
 
 import java.sql.*;
@@ -15,6 +17,7 @@ public abstract class JdbcUtils {
      * @see java.sql.Types
      */
     public static final int TYPE_UNKNOWN = Integer.MIN_VALUE;
+    public static final Logger log = LogFactory.getLogger();
 
     /**
      * Close the given JDBC Statement and ignore any thrown exception.
@@ -26,7 +29,11 @@ public abstract class JdbcUtils {
         if (stmt != null) {
             try {
                 stmt.close();
-            } catch (Throwable ex) {
+            }
+            catch (SQLException ex) {
+//                logger.debug("Could not close JDBC Statement", ex);
+            }
+            catch (Throwable ex) {
                 // We don't trust the JDBC driver: It might throw RuntimeException or Error.
 //                logger.debug("Unexpected exception on closing JDBC Statement", ex);
             }
@@ -43,7 +50,11 @@ public abstract class JdbcUtils {
         if (rs != null) {
             try {
                 rs.close();
-            } catch (Throwable ex) {
+            }
+            catch (SQLException ex) {
+//                logger.debug("Could not close JDBC ResultSet", ex);
+            }
+            catch (Throwable ex) {
                 // We don't trust the JDBC driver: It might throw RuntimeException or Error.
 //                logger.debug("Unexpected exception on closing JDBC ResultSet", ex);
             }
@@ -79,7 +90,7 @@ public abstract class JdbcUtils {
         try {
             obj = rs.getObject(index);
         } catch (SQLException e) {
-            if ("The conversion from char to SMALLINT is unsupported.".equals(e.getMessage())) {
+            if (e.getMessage().equals("The conversion from char to SMALLINT is unsupported.")) {
                 //issue with sqlserver jdbc 3.0 http://social.msdn.microsoft.com/Forums/sqlserver/en-US/2c908b45-6f75-484a-a891-5e8206f8844f/conversion-error-in-the-jdbc-30-driver-when-accessing-metadata
                 obj = rs.getString(index);
             } else {
@@ -90,9 +101,9 @@ public abstract class JdbcUtils {
             obj = rs.getBytes(index);
         } else if (obj instanceof Clob) {
             obj = rs.getString(index);
-        } else if ((obj != null) && obj.getClass().getName().startsWith("oracle.sql.TIMESTAMP")) {
+        } else if (obj != null && obj.getClass().getName().startsWith("oracle.sql.TIMESTAMP")) {
             obj = rs.getTimestamp(index);
-        } else if ((obj != null) && obj.getClass().getName().startsWith("oracle.sql.DATE")) {
+        } else if (obj != null && obj.getClass().getName().startsWith("oracle.sql.DATE")) {
             String metaDataClassName = rs.getMetaData().getColumnClassName(index);
             if ("java.sql.Timestamp".equals(metaDataClassName) ||
                     "oracle.sql.TIMESTAMP".equals(metaDataClassName)) {
@@ -100,7 +111,7 @@ public abstract class JdbcUtils {
             } else {
                 obj = rs.getDate(index);
             }
-        } else if ((obj != null) && (obj instanceof Date)) {
+        } else if (obj != null && obj instanceof java.sql.Date) {
             if ("java.sql.Timestamp".equals(rs.getMetaData().getColumnClassName(index))) {
                 obj = rs.getTimestamp(index);
             }
@@ -115,9 +126,10 @@ public abstract class JdbcUtils {
      * @return whether the type is numeric
      */
     public static boolean isNumeric(int sqlType) {
-        return (Types.BIT == sqlType) || (Types.BIGINT == sqlType) || (Types.DECIMAL == sqlType) || (Types.DOUBLE ==
-            sqlType) || (Types.FLOAT == sqlType) || (Types.INTEGER == sqlType) || (Types.NUMERIC == sqlType) ||
-            (Types.REAL == sqlType) || (Types.SMALLINT == sqlType) || (Types.TINYINT == sqlType);
+        return Types.BIT == sqlType || Types.BIGINT == sqlType || Types.DECIMAL == sqlType ||
+                Types.DOUBLE == sqlType || Types.FLOAT == sqlType || Types.INTEGER == sqlType ||
+                Types.NUMERIC == sqlType || Types.REAL == sqlType || Types.SMALLINT == sqlType ||
+                Types.TINYINT == sqlType;
     }
 
     /**
@@ -127,7 +139,7 @@ public abstract class JdbcUtils {
      * @return the single result object
      */
     public static Object requiredSingleResult(Collection results) throws DatabaseException {
-        int size = ((results != null) ? results.size() : 0);
+        int size = (results != null ? results.size() : 0);
         if (size == 0) {
             throw new DatabaseException("Empty result set, expected one row");
         }
@@ -152,7 +164,7 @@ public abstract class JdbcUtils {
         int numberOfColumns = metadata.getColumnCount();
         String correctedColumnName = database.correctObjectName(columnNameToCheck, Column.class);
         // get the column names; column indexes start from 1
-        for (int i = 1; i < (numberOfColumns + 1); i++) {
+        for (int i = 1; i < numberOfColumns + 1; i++) {
             String columnName = metadata.getColumnLabel(i);
             // Get the name of the column's table name
             if (correctedColumnName.equalsIgnoreCase(columnName)) {
@@ -162,5 +174,91 @@ public abstract class JdbcUtils {
         return null;
     }
 
+
+    /**
+     * Walkthrough and process the result sets
+     * @param stmt the statement object
+     * @param sql the SQL string
+     * @throws SQLException
+     */
+    //@TODO : APPDBD - processResults
+    public static void processResults(Statement stmt, String sql) throws SQLException {
+        boolean isResultset = false;
+
+        if (stmt instanceof PreparedStatement) {
+            PreparedStatement ps = (PreparedStatement) stmt;
+            isResultset = ps.execute();
+        } else {
+            isResultset = stmt.execute(sql);
+        }
+
+        printWarnings(stmt.getWarnings());
+        stmt.clearWarnings();
+        ResultSet rs = null;
+
+        while (true) {
+            if (isResultset) {
+                rs = stmt.getResultSet();
+                printRows(rs);
+                rs.close();
+            } else {
+                int i = stmt.getUpdateCount();
+                if (i == -1) {
+                    break;
+                }
+                log.info(i + " row(s) affected");
+            }
+            isResultset = stmt.getMoreResults();
+            printWarnings(stmt.getWarnings());
+            stmt.clearWarnings();
+        }
+    }
+
+    /**
+     * Print the result set data with headers
+     * @param rs ResultSet
+     * @throws SQLException
+     */
+    //@TODO : APPDBD - printRows
+    public static void printRows(ResultSet rs) throws SQLException {
+        ResultSetMetaData rsm = rs.getMetaData();
+        int columnCount = rsm.getColumnCount();
+        String row = System.lineSeparator();
+        int numRows = 0;
+
+        for (int i = 1; i <= columnCount; ++i) {
+            row += (rsm.getColumnName(i) + "\t");
+        }
+
+        while (rs.next()) {
+            row += System.lineSeparator();
+            for (int i = 1; i <= columnCount; ++i) {
+                row += rs.getString(i) + "\t";
+            }
+            ++numRows;
+        }
+        log.info(row);
+        log.info(numRows + " row(s) affected");
+    }
+
+    /**
+     * print database warnings/errors
+     * @param warn SQLWarning object
+     * @throws SQLException
+     */
+    //@TODO : APPDBD - printWarnings
+    public static void printWarnings(SQLWarning warn) throws SQLException {
+        while (warn != null) {
+            if (warn.getErrorCode() == 0 && warn.getSQLState() == null) {
+                log.info(System.lineSeparator() + warn.getMessage());
+            } else {
+                log.info("\n***** Database Message *****" + System.lineSeparator()
+                        + "Code:   " + warn.getErrorCode() + System.lineSeparator()
+                        + "Message:  " + warn.getMessage() + System.lineSeparator()
+                        + "SQLState: " + warn.getSQLState());
+            }
+            warn = warn.getNextWarning();
+        }
+    }
 
 }

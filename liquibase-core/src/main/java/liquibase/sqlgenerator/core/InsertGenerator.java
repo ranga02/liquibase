@@ -15,7 +15,7 @@ import java.util.Date;
 
 public class InsertGenerator extends AbstractSqlGenerator<InsertStatement> {
 
-	private boolean previousInsertHasHeader;
+	private boolean previousInsertHasHeader = false;
     @Override
     public ValidationErrors validate(InsertStatement insertStatement, Database database, SqlGeneratorChain sqlGeneratorChain) {
         ValidationErrors validationErrors = new ValidationErrors();
@@ -68,9 +68,9 @@ public class InsertGenerator extends AbstractSqlGenerator<InsertStatement> {
 
         for (String column : statement.getColumnValues().keySet()) {
             Object newValue = statement.getColumnValues().get(column);
-            if ((newValue == null) || "NULL".equalsIgnoreCase(newValue.toString())) {
+            if (newValue == null || newValue.toString().equalsIgnoreCase("NULL")) {
                 sql.append("NULL");
-            } else if ((newValue instanceof String) && !looksLikeFunctionCall(((String) newValue), database)) {
+            } else if (newValue instanceof String && !looksLikeFunctionCall(((String) newValue), database)) {
                 sql.append(DataTypeFactory.getInstance().fromObject(newValue, database).objectToSql(newValue, database));
             } else if (newValue instanceof Date) {
                 sql.append(database.getDateLiteral(((Date) newValue)));

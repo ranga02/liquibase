@@ -5,8 +5,9 @@ import liquibase.database.Database;
 import liquibase.database.core.MySQLDatabase;
 import liquibase.datatype.DataTypeFactory;
 import liquibase.datatype.LiquibaseDataType;
-import liquibase.exception.UnexpectedLiquibaseException;
-import liquibase.exception.ValidationErrors;
+import liquibase.exception.*;
+import liquibase.parser.core.ParsedNode;
+import liquibase.resource.ResourceAccessor;
 import liquibase.snapshot.SnapshotGeneratorFactory;
 import liquibase.sqlgenerator.SqlGeneratorFactory;
 import liquibase.statement.*;
@@ -18,6 +19,7 @@ import liquibase.structure.core.PrimaryKey;
 import liquibase.structure.core.Table;
 import liquibase.util.StringUtils;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,7 +38,7 @@ public class CreateTableChange extends AbstractChange implements ChangeWithColum
 
     public CreateTableChange() {
         super();
-        columns = new ArrayList<>();
+        columns = new ArrayList<ColumnConfig>();
     }
 
     @Override
@@ -63,31 +65,30 @@ public class CreateTableChange extends AbstractChange implements ChangeWithColum
         CreateTableStatement statement = generateCreateTableStatement();
         for (ColumnConfig column : getColumns()) {
             ConstraintsConfig constraints = column.getConstraints();
-            boolean isAutoIncrement = (column.isAutoIncrement() != null) && column.isAutoIncrement();
+            boolean isAutoIncrement = column.isAutoIncrement() != null && column.isAutoIncrement();
 
             Object defaultValue = column.getDefaultValueObject();
 
             LiquibaseDataType columnType = DataTypeFactory.getInstance().fromDescription(column.getType() + (isAutoIncrement ? "{autoIncrement:true}" : ""), database);
-            if ((constraints != null) && (constraints.isPrimaryKey() != null) && constraints.isPrimaryKey()) {
+            if (constraints != null && constraints.isPrimaryKey() != null && constraints.isPrimaryKey()) {
 
                 statement.addPrimaryKeyColumn(column.getName(), columnType, defaultValue, constraints.getPrimaryKeyName(), constraints.getPrimaryKeyTablespace());
 
             } else {
                 statement.addColumn(column.getName(),
                         columnType,
-                        column.getDefaultValueConstraintName(),
                         defaultValue,
                         column.getRemarks());
             }
 
 
             if (constraints != null) {
-                if ((constraints.isNullable() != null) && !constraints.isNullable()) {
-                    statement.addColumnConstraint(new NotNullConstraint(column.getName()).setName(constraints.getNotNullConstraintName()));
+                if (constraints.isNullable() != null && !constraints.isNullable()) {
+                    statement.addColumnConstraint(new NotNullConstraint(column.getName()));
                 }
 
-                if ((constraints.getReferences() != null) || ((constraints.getReferencedTableName() != null) &&
-                    (constraints.getReferencedColumnNames() != null))) {
+                if (constraints.getReferences() != null ||
+                        (constraints.getReferencedTableName() != null && constraints.getReferencedColumnNames() != null)) {
                     if (StringUtils.trimToNull(constraints.getForeignKeyName()) == null) {
                         throw new UnexpectedLiquibaseException("createTable with references requires foreignKeyName");
                     }
@@ -97,15 +98,13 @@ public class CreateTableChange extends AbstractChange implements ChangeWithColum
                     fkConstraint.setReferencedTableSchemaName(constraints.getReferencedTableSchemaName());
 
                     fkConstraint.setColumn(column.getName());
-                    fkConstraint.setDeleteCascade((constraints.isDeleteCascade() != null) && constraints
-                        .isDeleteCascade());
-                    fkConstraint.setInitiallyDeferred((constraints.isInitiallyDeferred() != null) && constraints
-                        .isInitiallyDeferred());
-                    fkConstraint.setDeferrable((constraints.isDeferrable() != null) && constraints.isDeferrable());
+                    fkConstraint.setDeleteCascade(constraints.isDeleteCascade() != null && constraints.isDeleteCascade());
+                    fkConstraint.setInitiallyDeferred(constraints.isInitiallyDeferred() != null && constraints.isInitiallyDeferred());
+                    fkConstraint.setDeferrable(constraints.isDeferrable() != null && constraints.isDeferrable());
                     statement.addColumnConstraint(fkConstraint);
                 }
 
-                if ((constraints.isUnique() != null) && constraints.isUnique()) {
+                if (constraints.isUnique() != null && constraints.isUnique()) {
                     statement.addColumnConstraint(new UniqueConstraint(constraints.getUniqueConstraintName()).addColumns(column.getName()));
                 }
             }
@@ -117,7 +116,7 @@ public class CreateTableChange extends AbstractChange implements ChangeWithColum
 
         statement.setTablespace(StringUtils.trimToNull(getTablespace()));
 
-        List<SqlStatement> statements = new ArrayList<>();
+        List<SqlStatement> statements = new ArrayList<SqlStatement>();
         statements.add(statement);
 
         if (StringUtils.trimToNull(remarks) != null) {
@@ -141,7 +140,7 @@ public class CreateTableChange extends AbstractChange implements ChangeWithColum
     }
 
     protected CreateTableStatement generateCreateTableStatement() {
-        return new CreateTableStatement(getCatalogName(), getSchemaName(), getTableName(), getRemarks());
+        return new CreateTableStatement(getCatalogName(), getSchemaName(), getTableName(),getRemarks());
     }
 
     @Override
@@ -171,18 +170,15 @@ public class CreateTableChange extends AbstractChange implements ChangeWithColum
                     if (columnSnapshot != null) {
                         ConstraintsConfig constraints = columnConfig.getConstraints();
                         if (constraints != null) {
-                            if ((constraints.isPrimaryKey() != null) && constraints.isPrimaryKey()) {
+                            if (constraints.isPrimaryKey() != null && constraints.isPrimaryKey()) {
                                 PrimaryKey tablePk = tableSnapshot.getPrimaryKey();
-                                status.assertCorrect((tablePk != null) && tablePk.getColumnNamesAsList().contains
-                                    (columnConfig.getName()), "Column "+columnConfig.getName()+" is not part of the primary key");
+                                status.assertCorrect(tablePk != null && tablePk.getColumnNamesAsList().contains(columnConfig.getName()), "Column "+columnConfig.getName()+" is not part of the primary key");
                             }
                             if (constraints.isNullable() != null) {
                                 if (constraints.isNullable()) {
-                                    status.assertCorrect((columnSnapshot.isNullable() == null) || columnSnapshot
-                                        .isNullable(), "Column "+columnConfig.getName()+" nullability does not match");
+                                    status.assertCorrect(columnSnapshot.isNullable() == null || columnSnapshot.isNullable(), "Column "+columnConfig.getName()+" nullability does not match");
                                 } else {
-                                    status.assertCorrect((columnSnapshot.isNullable() != null) && !columnSnapshot
-                                        .isNullable(), "Column "+columnConfig.getName()+" nullability does not match");
+                                    status.assertCorrect(columnSnapshot.isNullable() != null && !columnSnapshot.isNullable(), "Column "+columnConfig.getName()+" nullability does not match");
                                 }
                             }
                         }
@@ -200,7 +196,7 @@ public class CreateTableChange extends AbstractChange implements ChangeWithColum
     @DatabaseChangeProperty(requiredForDatabase = "all")
     public List<ColumnConfig> getColumns() {
         if (columns == null) {
-            return new ArrayList<>();
+            return new ArrayList<ColumnConfig>();
         }
         return columns;
     }

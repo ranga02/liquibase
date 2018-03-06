@@ -3,16 +3,12 @@ package liquibase.integration.servlet;
 import liquibase.Contexts;
 import liquibase.LabelExpression;
 import liquibase.Liquibase;
-import liquibase.configuration.ConfigurationProperty;
-import liquibase.configuration.ConfigurationValueProvider;
-import liquibase.configuration.GlobalConfiguration;
-import liquibase.configuration.LiquibaseConfiguration;
+import liquibase.configuration.*;
 import liquibase.database.Database;
 import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.exception.LiquibaseException;
-import liquibase.logging.LogService;
-import liquibase.logging.LogType;
+import liquibase.logging.LogFactory;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import liquibase.resource.CompositeResourceAccessor;
 import liquibase.resource.FileSystemResourceAccessor;
@@ -63,16 +59,12 @@ public class LiquibaseServletListener implements ServletContextListener {
         return changeLogFile;
     }
 
-    public void setChangeLogFile(String changeLogFile) {
-        this.changeLogFile = changeLogFile;
+    public void setContexts(String ctxt) {
+        contexts = ctxt;
     }
 
     public String getContexts() {
         return contexts;
-    }
-
-    public void setContexts(String ctxt) {
-        contexts = ctxt;
     }
 
     public String getLabels() {
@@ -83,8 +75,16 @@ public class LiquibaseServletListener implements ServletContextListener {
         this.labels = labels;
     }
 
+    public void setChangeLogFile(String changeLogFile) {
+        this.changeLogFile = changeLogFile;
+    }
+
     public String getDataSource() {
         return dataSourceName;
+    }
+
+    public String getDefaultSchema() {
+        return defaultSchema;
     }
 
     /**
@@ -92,10 +92,6 @@ public class LiquibaseServletListener implements ServletContextListener {
      */
     public void setDataSource(String dataSource) {
         this.dataSourceName = dataSource;
-    }
-
-    public String getDefaultSchema() {
-        return defaultSchema;
     }
 
     @Override
@@ -149,7 +145,7 @@ public class LiquibaseServletListener implements ServletContextListener {
     private boolean checkPreconditions(ServletContext servletContext, InitialContext ic) {
         GlobalConfiguration globalConfiguration = LiquibaseConfiguration.getInstance().getConfiguration(GlobalConfiguration.class);
         if (!globalConfiguration.getShouldRun()) {
-            LogService.getLog(getClass()).info(LogType.LOG, "Liquibase did not run on " + hostName
+            LogFactory.getLogger().info( "Liquibase did not run on " + hostName
                     + " because "+ LiquibaseConfiguration.getInstance().describeValueLookupLogic(globalConfiguration.getProperty(GlobalConfiguration.SHOULD_RUN))
                             + " was set to false");
             return false;
@@ -159,7 +155,7 @@ public class LiquibaseServletListener implements ServletContextListener {
         String machineExcludes = (String) servletValueContainer.getValue(LIQUIBASE_HOST_EXCLUDES);
 
         boolean shouldRun = false;
-        if ((machineIncludes == null) && (machineExcludes == null)) {
+        if (machineIncludes == null && machineExcludes == null) {
             shouldRun = true;
         } else if (machineIncludes != null) {
             for (String machine : machineIncludes.split(",")) {

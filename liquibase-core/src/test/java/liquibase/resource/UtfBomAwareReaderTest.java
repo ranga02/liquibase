@@ -1,6 +1,6 @@
 package liquibase.resource;
 
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -8,7 +8,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Ignore;
+import org.junit.Test;
 
 public class UtfBomAwareReaderTest {
 

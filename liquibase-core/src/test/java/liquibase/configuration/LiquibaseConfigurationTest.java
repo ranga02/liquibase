@@ -2,8 +2,8 @@ package liquibase.configuration;
 
 import org.junit.Test;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertSame;
 
 public class LiquibaseConfigurationTest {
 

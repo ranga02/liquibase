@@ -3,8 +3,7 @@ package liquibase.util;
 import liquibase.configuration.GlobalConfiguration;
 import liquibase.configuration.LiquibaseConfiguration;
 import liquibase.exception.UnexpectedLiquibaseException;
-import liquibase.logging.LogService;
-import liquibase.logging.LogType;
+import liquibase.logging.LogFactory;
 
 import java.io.InputStream;
 import java.security.DigestInputStream;
@@ -42,7 +41,7 @@ public class MD5Util {
         if (inputToLog.length() > 500) {
             inputToLog = inputToLog.substring(0, 500)+"... [truncated in log]";
         }
-        LogService.getLog(MD5Util.class).debug(LogType.LOG, "Computed checksum for "+inputToLog+" as "+returnString);
+        LogFactory.getLogger().debug("Computed checksum for "+inputToLog+" as "+returnString);
         return returnString;
 
     }
@@ -64,7 +63,7 @@ public class MD5Util {
 
         String returnString = new String(encodeHex(digestBytes));
 
-        LogService.getLog(MD5Util.class).debug(LogType.LOG, "Computed checksum for inputStream as "+returnString);
+        LogFactory.getLogger().debug("Computed checksum for inputStream as "+returnString);
         return returnString;
     }
 

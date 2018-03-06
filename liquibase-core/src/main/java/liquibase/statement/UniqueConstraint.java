@@ -8,7 +8,7 @@ import java.util.List;
 
 public class UniqueConstraint implements ColumnConstraint {
     private String constraintName;
-    private List<String> columns = new ArrayList<>();
+    private List<String> columns = new ArrayList<String>();
 
     private Index backingIndex;
 

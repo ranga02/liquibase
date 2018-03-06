@@ -23,7 +23,7 @@ public class ChangeSetStatus {
 
     private CheckSum storedCheckSum;
     private Date dateLastExecuted;
-    private boolean previouslyRan;
+    private boolean previouslyRan = false;
 
     private RanChangeSet ranChangeSet;
 

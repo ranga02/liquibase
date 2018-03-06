@@ -16,6 +16,8 @@ package liquibase.util.csv.opencsv;
  limitations under the License.
  */
 
+import liquibase.configuration.GlobalConfiguration;
+import liquibase.configuration.LiquibaseConfiguration;
 import liquibase.util.csv.opencsv.stream.reader.LineReader;
 
 import java.io.BufferedReader;
@@ -49,8 +51,8 @@ public class CSVReader implements Closeable, Iterable<String[]> {
     private boolean keepCR;
     private boolean verifyReader;
 
-    private long linesRead;
-    private long recordsRead;
+    private long linesRead = 0;
+    private long recordsRead = 0;
 
     /**
      * Constructs CSVReader using a comma for the separator.
@@ -204,7 +206,10 @@ public class CSVReader implements Closeable, Iterable<String[]> {
      * @param verifyReader   true to verify reader before each read, false otherwise
      */
     CSVReader(Reader reader, int line, CSVParser csvParser, boolean keepCR, boolean verifyReader) {
-        this.br = ((reader instanceof BufferedReader) ? (BufferedReader) reader : new BufferedReader(reader));
+        this.br =
+                (reader instanceof BufferedReader ?
+                        (BufferedReader) reader :
+                        new BufferedReader(reader));
         this.lineReader = new LineReader(br, keepCR);
         this.skipLines = line;
         this.parser = csvParser;
@@ -247,7 +252,7 @@ public class CSVReader implements Closeable, Iterable<String[]> {
      */
     public List<String[]> readAll() throws IOException {
 
-        List<String[]> allElements = new ArrayList<>();
+        List<String[]> allElements = new ArrayList<String[]>();
         while (hasNext) {
             String[] nextLineAsTokens = readNext();
             if (nextLineAsTokens != null) {

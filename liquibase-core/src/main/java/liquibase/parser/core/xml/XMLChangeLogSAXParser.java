@@ -1,24 +1,32 @@
 package liquibase.parser.core.xml;
 
-import liquibase.changelog.ChangeLogParameters;
-import liquibase.exception.ChangeLogParseException;
-import liquibase.logging.LogService;
-import liquibase.logging.LogType;
-import liquibase.parser.core.ParsedNode;
-import liquibase.resource.ResourceAccessor;
-import liquibase.resource.UtfBomStripperInputStream;
-import liquibase.util.StreamUtil;
-import liquibase.util.file.FilenameUtils;
-import org.xml.sax.*;
-
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+import javax.xml.transform.Source;
+import javax.xml.validation.SchemaFactory;
+
+import liquibase.changelog.ChangeLogParameters;
+import liquibase.exception.ChangeLogParseException;
+import liquibase.logging.LogFactory;
+import liquibase.parser.core.ParsedNode;
+import liquibase.resource.UtfBomStripperInputStream;
+import liquibase.resource.ResourceAccessor;
+import liquibase.util.StreamUtil;
+import liquibase.util.file.FilenameUtils;
+
+import org.xml.sax.ErrorHandler;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXNotRecognizedException;
+import org.xml.sax.SAXNotSupportedException;
+import org.xml.sax.SAXParseException;
+import org.xml.sax.XMLReader;
+
 public class XMLChangeLogSAXParser extends AbstractChangeLogParser {
-    
-    public static final String LIQUIBASE_SCHEMA_VERSION = "3.6";
+
     private SAXParserFactory saxParserFactory;
 
     public XMLChangeLogSAXParser() {
@@ -33,7 +41,7 @@ public class XMLChangeLogSAXParser extends AbstractChangeLogParser {
     }
 
     public static String getSchemaVersion() {
-        return LIQUIBASE_SCHEMA_VERSION;
+        return "3.5";
     }
 
     @Override
@@ -47,11 +55,17 @@ public class XMLChangeLogSAXParser extends AbstractChangeLogParser {
 
     @Override
     protected ParsedNode parseToNode(String physicalChangeLogLocation, ChangeLogParameters changeLogParameters, ResourceAccessor resourceAccessor) throws ChangeLogParseException {
-        try (
-            InputStream inputStream = StreamUtil.singleInputStream(physicalChangeLogLocation, resourceAccessor)) {
+        InputStream inputStream = null;
+        try {
             SAXParser parser = saxParserFactory.newSAXParser();
-            trySetSchemaLanguageProperty(parser);
-    
+            try {
+                parser.setProperty("http://java.sun.com/xml/jaxp/properties/schemaLanguage", "http://www.w3.org/2001/XMLSchema");
+            } catch (SAXNotRecognizedException e) {
+                //ok, parser must not support it
+            } catch (SAXNotSupportedException e) {
+                //ok, parser must not support it
+            }
+
             XMLReader xmlReader = parser.getXMLReader();
             LiquibaseEntityResolver resolver=new LiquibaseEntityResolver(this);
             resolver.useResoureAccessor(resourceAccessor,FilenameUtils.getFullPath(physicalChangeLogLocation));
@@ -59,30 +73,30 @@ public class XMLChangeLogSAXParser extends AbstractChangeLogParser {
             xmlReader.setErrorHandler(new ErrorHandler() {
                 @Override
                 public void warning(SAXParseException exception) throws SAXException {
-                    LogService.getLog(getClass()).warning(LogType.LOG, exception.getMessage());
+                    LogFactory.getLogger().warning(exception.getMessage());
                     throw exception;
                 }
 
                 @Override
                 public void error(SAXParseException exception) throws SAXException {
-                    LogService.getLog(getClass()).severe(LogType.LOG, exception.getMessage());
+                    LogFactory.getLogger().severe(exception.getMessage());
                     throw exception;
                 }
 
                 @Override
                 public void fatalError(SAXParseException exception) throws SAXException {
-                    LogService.getLog(getClass()).severe(LogType.LOG, exception.getMessage());
+                    LogFactory.getLogger().severe(exception.getMessage());
                     throw exception;
                 }
             });
         	
+            inputStream = StreamUtil.singleInputStream(physicalChangeLogLocation, resourceAccessor);
             if (inputStream == null) {
                 if (physicalChangeLogLocation.startsWith("WEB-INF/classes/")) {
-                    // Correct physicalChangeLogLocation and try again.
-                    return parseToNode(
-                        physicalChangeLogLocation.replaceFirst("WEB-INF/classes/", ""),
-                            changeLogParameters, resourceAccessor);
-                } else {
+                    physicalChangeLogLocation = physicalChangeLogLocation.replaceFirst("WEB-INF/classes/", "");
+                    inputStream = StreamUtil.singleInputStream(physicalChangeLogLocation, resourceAccessor);
+                }
+                if (inputStream == null) {
                     throw new ChangeLogParseException(physicalChangeLogLocation + " does not exist");
                 }
             }
@@ -111,6 +125,10 @@ public class XMLChangeLogSAXParser extends AbstractChangeLogParser {
             if (e.getCause() != null) {
                 causeReason = e.getCause().getMessage();
             }
+
+//            if (reason == null && causeReason==null) {
+//                reason = "Unknown Reason";
+//            }
             if (reason == null) {
                 if (causeReason != null) {
                     reason = causeReason;
@@ -122,19 +140,14 @@ public class XMLChangeLogSAXParser extends AbstractChangeLogParser {
             throw new ChangeLogParseException("Invalid Migration File: " + reason, e);
         } catch (Exception e) {
             throw new ChangeLogParseException(e);
-        }
-    }
-    
-    /**
-     * Try to set the parser property "schemaLanguage", but do not mind if the parser does not understand it.
-     * @todo If we do not mind, why do we set it in the first place? Need to resarch in git...
-     * @param parser the parser to configure
-     */
-    private void trySetSchemaLanguageProperty(SAXParser parser) {
-        try {
-            parser.setProperty("http://java.sun.com/xml/jaxp/properties/schemaLanguage", "http://www.w3.org/2001/XMLSchema");
-        } catch (SAXNotRecognizedException|SAXNotSupportedException ignored) {
-            //ok, parser need not support it
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    // probably ok
+                }
+            }
         }
     }
 }

@@ -1,5 +1,7 @@
 package liquibase.snapshot;
 
+import liquibase.executor.jvm.ColumnMapRowMapper;
+
 import java.util.Map;
 
 public class CachedRow {
@@ -58,12 +60,7 @@ public class CachedRow {
             }
         }
         if (o instanceof String) {
-            String s = (String)o;
-            // Firebird JDBC driver quirk:
-            // Returns "T" instead of "true" (Boolean.valueOf tests case-insensitively for "true")
-            if ("T".equalsIgnoreCase(s))
-                s = "TRUE";
-            return Boolean.valueOf(s);
+            return Boolean.valueOf((String) o);
         }
         return (Boolean) o;
     }

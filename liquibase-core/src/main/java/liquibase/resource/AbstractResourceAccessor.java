@@ -1,11 +1,14 @@
 package liquibase.resource;
 
 import liquibase.exception.UnexpectedLiquibaseException;
+import liquibase.util.CollectionUtil;
 import liquibase.util.StringUtils;
 import liquibase.util.SystemUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
@@ -14,7 +17,7 @@ import java.util.*;
 public abstract class AbstractResourceAccessor implements ResourceAccessor {
 
     //We don't use an HashSet otherwise iteration order is not deterministic
-    private List<String> rootStrings = new ArrayList<>();
+	private List<String> rootStrings = new ArrayList<String>();
 
     protected AbstractResourceAccessor() {
         init();
@@ -26,7 +29,7 @@ public abstract class AbstractResourceAccessor implements ResourceAccessor {
             ClassLoader classLoader = toClassLoader();
             if (classLoader != null) {
                 if (classLoader instanceof URLClassLoader) {
-                    baseUrls = new Vector<>(Arrays.asList(((URLClassLoader) classLoader).getURLs())).elements();
+                    baseUrls = new Vector<URL>(Arrays.asList(((URLClassLoader) classLoader).getURLs())).elements();
 
                     while (baseUrls.hasMoreElements()) {
                         addRootPath(baseUrls.nextElement());
@@ -52,20 +55,20 @@ public abstract class AbstractResourceAccessor implements ResourceAccessor {
         if (path == null) {
             return;
         }
-        String externalForm = path.toExternalForm();
+    	String externalForm = path.toExternalForm();
         if (externalForm.startsWith("file:")) {
             try {
-                externalForm = new File(path.toURI()).getCanonicalFile().toURI().toURL().toExternalForm();
-            } catch (Exception e) {
+                externalForm = new File(path.toURI()).getCanonicalFile().toURL().toExternalForm();
+            } catch (Throwable e) {
                 //keep original version
             }
         }
-        if (!externalForm.endsWith("/")) {
-            externalForm += "/";
-        }
-        if (!rootStrings.contains(externalForm)) {
-            rootStrings.add(externalForm);
-        }
+    	if (!externalForm.endsWith("/")) {
+    		externalForm += "/";
+    	}
+    	if (!rootStrings.contains(externalForm)) {
+    		rootStrings.add(externalForm);
+    	}
     }
 
     protected List<String> getRootPaths() {
@@ -158,10 +161,10 @@ public abstract class AbstractResourceAccessor implements ResourceAccessor {
         }
         String separator = "";
         if (!base.endsWith("/") && !path.startsWith("/")) {
-            separator = "/";
+        	separator = "/";
         }
         if (base.endsWith("/") && path.startsWith("/")) {
-            base = base.substring(0, base.length() - 1);
+        	base = base.substring(0, base.length() - 1);
         }            
         return convertToPath(base + separator + path);
     }

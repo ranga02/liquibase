@@ -2,14 +2,11 @@ package liquibase;
 
 import liquibase.util.StringUtils;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.*;
 
 public class Labels {
 
-    private Set<String> labels = new LinkedHashSet<>();
+    private Set<String> labels = new LinkedHashSet<String>();
 
     public Labels() {
     }
@@ -59,11 +56,11 @@ public class Labels {
 
     @Override
     public String toString() {
-        return StringUtils.join(new LinkedHashSet<>(this.labels),",");
+        return StringUtils.join(new LinkedHashSet<String>(this.labels),",");
     }
 
     public boolean isEmpty() {
-        return (this.labels == null) || this.labels.isEmpty();
+        return this.labels == null || this.labels.isEmpty();
     }
 
     public Set<String> getLabels() {

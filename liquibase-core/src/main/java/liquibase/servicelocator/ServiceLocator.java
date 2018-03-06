@@ -2,8 +2,9 @@ package liquibase.servicelocator;
 
 import liquibase.exception.ServiceNotFoundException;
 import liquibase.exception.UnexpectedLiquibaseException;
-import liquibase.logging.LogService;
-import liquibase.logging.LogType;
+import liquibase.logging.LogFactory;
+import liquibase.logging.Logger;
+import liquibase.logging.core.DefaultLogger;
 import liquibase.osgi.OSGiPackageScanClassResolver;
 import liquibase.osgi.OSGiResourceAccessor;
 import liquibase.osgi.OSGiUtil;
@@ -43,7 +44,7 @@ public class ServiceLocator {
                     instance = new ServiceLocator();
                 }
             } catch (Throwable e1) {
-                LogService.getLog(ServiceLocator.class).severe(LogType.LOG, "Cannot build ServiceLocator", e1);
+                LogFactory.getInstance().getLog().severe("Cannot build ServiceLocator", e1);
             }
         }
     }
@@ -52,6 +53,7 @@ public class ServiceLocator {
 
     private Map<Class, List<Class>> classesBySuperclass;
     private List<String> packagesToScan;
+    private Logger logger = new DefaultLogger(); //cannot look up regular logger because you get a stackoverflow since we are in the servicelocator
     private PackageScanClassResolver classResolver;
 
     protected ServiceLocator() {
@@ -82,13 +84,9 @@ public class ServiceLocator {
         instance = newInstance;
     }
 
-    public static synchronized void reset() {
-        instance = new ServiceLocator();
-    }
-
     protected PackageScanClassResolver defaultClassLoader(){
         if (WebSpherePackageScanClassResolver.isWebSphereClassLoader(this.getClass().getClassLoader())) {
-            LogService.getLog(getClass()).debug(LogType.LOG, "Using WebSphere Specific Class Resolver");
+            logger.debug("Using WebSphere Specific Class Resolver");
             return new WebSpherePackageScanClassResolver("liquibase/parser/core/xml/dbchangelog-2.0.xsd");
         } else {
             return new DefaultPackageScanClassResolver();
@@ -97,12 +95,12 @@ public class ServiceLocator {
 
     public void setResourceAccessor(ResourceAccessor resourceAccessor) {
         this.resourceAccessor = resourceAccessor;
-        this.classesBySuperclass = new HashMap<>();
+        this.classesBySuperclass = new HashMap<Class, List<Class>>();
 
-        this.classResolver.setClassLoaders(new HashSet<>(Arrays.asList(new ClassLoader[]{resourceAccessor.toClassLoader()})));
+        this.classResolver.setClassLoaders(new HashSet<ClassLoader>(Arrays.asList(new ClassLoader[] {resourceAccessor.toClassLoader()})));
 
         if (packagesToScan == null) {
-            packagesToScan = new ArrayList<>();
+            packagesToScan = new ArrayList<String>();
             String packagesToScanSystemProp = System.getProperty("liquibase.scan.packages");
             if ((packagesToScanSystemProp != null) &&
                 ((packagesToScanSystemProp = StringUtils.trimToNull(packagesToScanSystemProp)) != null)) {
@@ -129,7 +127,7 @@ public class ServiceLocator {
                     throw new UnexpectedLiquibaseException(e);
                 }
 
-                if (packagesToScan.isEmpty()) {
+                if (packagesToScan.size() == 0) {
                     addPackageToScan("liquibase.change");
                     addPackageToScan("liquibase.changelog");
                     addPackageToScan("liquibase.database");
@@ -172,7 +170,7 @@ public class ServiceLocator {
                     throw new UnexpectedLiquibaseException(e);
                 }
 
-                if ((returnObject == null) || (newInstance.getPriority() > returnObject.getPriority())) {
+                if (returnObject == null || newInstance.getPriority() > returnObject.getPriority()) {
                     returnObject = newInstance;
                 }
             }
@@ -191,7 +189,7 @@ public class ServiceLocator {
     }
 
     public <T> Class<? extends T>[] findClasses(Class<T> requiredInterface) throws ServiceNotFoundException {
-        LogService.getLog(getClass()).debug(LogType.LOG, "ServiceLocator.findClasses for "+requiredInterface.getName());
+        logger.debug("ServiceLocator.findClasses for "+requiredInterface.getName());
 
             try {
                 Class.forName(requiredInterface.getName());
@@ -204,7 +202,7 @@ public class ServiceLocator {
             }
 
         List<Class> classes = classesBySuperclass.get(requiredInterface);
-        HashSet<Class> uniqueClasses = new HashSet<>(classes);
+        HashSet<Class> uniqueClasses = new HashSet<Class>(classes);
         return uniqueClasses.toArray(new Class[uniqueClasses.size()]);
     }
 
@@ -217,38 +215,43 @@ public class ServiceLocator {
     }
 
     private List<Class> findClassesImpl(Class requiredInterface) throws Exception {
-        LogService.getLog(getClass()).debug(LogType.LOG, "ServiceLocator finding classes matching interface " + requiredInterface.getName());
+        logger.debug("ServiceLocator finding classes matching interface " + requiredInterface.getName());
 
-        List<Class> classes = new ArrayList<>();
+        List<Class> classes = new ArrayList<Class>();
 
         classResolver.addClassLoader(resourceAccessor.toClassLoader());
         for (Class<?> clazz : classResolver.findImplementations(requiredInterface, packagesToScan.toArray(new String[packagesToScan.size()]))) {
-            if ((clazz.getAnnotation(LiquibaseService.class) != null) && clazz.getAnnotation(LiquibaseService.class)
-                .skip()) {
+            if (clazz.getAnnotation(LiquibaseService.class ) != null  && clazz.getAnnotation(LiquibaseService.class).skip()) {
                 continue;
             }
 
-            if (!Modifier.isAbstract(clazz.getModifiers()) && !Modifier.isInterface(clazz.getModifiers()) && !clazz.isAnonymousClass() &&!clazz.isSynthetic() && Modifier.isPublic(clazz.getModifiers())) {
+            if (!Modifier.isAbstract(clazz.getModifiers()) && !Modifier.isInterface(clazz.getModifiers()) && Modifier.isPublic(clazz.getModifiers())) {
                 try {
                     clazz.getConstructor();
-                    LogService.getLog(getClass()).debug(LogType.LOG, clazz.getName() + " matches "+requiredInterface.getName());
+                    logger.debug(clazz.getName() + " matches "+requiredInterface.getName());
 
                     classes.add(clazz);
                 } catch (NoSuchMethodException e) {
-                    LogService.getLog(getClass()).info(LogType.LOG, "Can not use " + clazz + " as a Liquibase service because it does not have a " +
-                        "no-argument constructor");
+                    logger.info("Can not use "+clazz+" as a Liquibase service because it does not have a no-argument constructor" );
                 } catch (NoClassDefFoundError e) {
-                    String message = "Can not use " + clazz + " as a Liquibase service because " + e.getMessage()
-                        .replace("/", ".") + " is not in the classpath";
+                    String message = "Can not use " + clazz + " as a Liquibase service because " + e.getMessage().replace("/", ".") + " is not in the classpath";
                     if (e.getMessage().startsWith("org/yaml/snakeyaml")) {
-                        LogService.getLog(getClass()).info(LogType.LOG, message);
+                        logger.info(message);
                     } else {
-                        LogService.getLog(getClass()).warning(LogType.LOG, message);
+                        logger.warning(message);
                     }
                 }
             }
         }
 
         return classes;
+    }
+
+    public static synchronized void reset() {
+        instance = new ServiceLocator();
+    }
+
+    protected Logger getLogger() {
+        return logger;
     }
 }

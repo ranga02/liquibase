@@ -1,5 +1,7 @@
 package liquibase.structure.core;
 
+import liquibase.database.Database;
+import liquibase.exception.UnexpectedLiquibaseException;
 import liquibase.structure.AbstractDatabaseObject;
 import liquibase.structure.DatabaseObject;
 import liquibase.util.StringUtils;
@@ -9,11 +11,11 @@ import java.util.*;
 public class Index extends AbstractDatabaseObject {
 
 	/** Marks Index as associated with Primary Key [PK] */
-    public static final String MARK_PRIMARY_KEY = "primaryKey";
+	public final static String MARK_PRIMARY_KEY = "primaryKey";
 	/** Marks Index as associated with Foreign Key [FK] */
-    public static final String MARK_FOREIGN_KEY = "foreignKey";
+	public final static String MARK_FOREIGN_KEY = "foreignKey";
 	/** Marks Index as associated with Unique Constraint [UC] */
-    public static final String MARK_UNIQUE_CONSTRAINT = "uniqueConstraint";
+	public final static String MARK_UNIQUE_CONSTRAINT = "uniqueConstraint";
 
     public Index() {
         setAttribute("columns", new ArrayList<String>());
@@ -30,7 +32,7 @@ public class Index extends AbstractDatabaseObject {
         setName(indexName);
         if (tableName != null) {
             setTable(new Table(catalogName, schemaName, tableName));
-            if ((columns != null) && (columns.length > 0)) {
+            if (columns != null && columns.length > 0) {
                 setColumns(Arrays.asList(columns));
             }
         }
@@ -63,11 +65,11 @@ public class Index extends AbstractDatabaseObject {
         return getTable().getSchema();
     }
 
-    public Relation getTable() {
-        return getAttribute("table", Relation.class);
+    public Table getTable() {
+        return getAttribute("table", Table.class);
     }
 
-    public Index setTable(Relation table) {
+    public Index setTable(Table table) {
         this.setAttribute("table", table);
         return this;
     }
@@ -162,9 +164,9 @@ public class Index extends AbstractDatabaseObject {
         Index o = (Index) other;
         int returnValue = 0;
 
-        if ((this.getTable() != null) && (o.getTable() != null)) {
+        if (this.getTable() != null && o.getTable() != null) {
             returnValue = this.getTable().compareTo(o.getTable());
-            if ((returnValue == 0) && (this.getTable().getSchema() != null) && (o.getTable().getSchema() != null)) {
+            if (returnValue == 0 && this.getTable().getSchema() != null && o.getTable().getSchema() != null) {
                 returnValue = StringUtils.trimToEmpty(this.getTable().getSchema().getName()).compareToIgnoreCase(StringUtils.trimToEmpty(o.getTable().getSchema().getName()));
             }
         }
@@ -202,32 +204,23 @@ public class Index extends AbstractDatabaseObject {
         return this.compareTo(obj) == 0;
     }
 
-    /**
-     * (Try to) provide a human-readable name for the index.
-     * @return A (hopefully) human-readable name
-     */
     @Override
     public String toString() {
         StringBuffer stringBuffer = new StringBuffer();
-        stringBuffer.append( (getName() == null) ? "(unnamed index)" : getName());
-        if ((this.isUnique() != null) && this.isUnique()) {
-            stringBuffer.append(" UNIQUE ");
+        stringBuffer.append(getName());
+        if (this.isUnique() != null && this.isUnique()) {
+            stringBuffer.append(" unique ");
         }
-        if ((getTable() != null) && (getColumns() != null)) {
+        if (getTable() != null && getColumns() != null) {
             String tableName = getTable().getName();
-            if ((getTable().getSchema() != null) && (getTable().getSchema().getName() != null)) {
+            if (getTable().getSchema() != null && getTable().getSchema().getName() != null) {
                 tableName = getTable().getSchema().getName()+"."+tableName;
             }
-            stringBuffer.append(" ON ").append(tableName);
-            if ((getColumns() != null) && !getColumns().isEmpty()) {
+            stringBuffer.append(" on ").append(tableName);
+            if (getColumns() != null && getColumns().size() > 0) {
                 stringBuffer.append("(");
                 for (Column column : getColumns()) {
-                    if (column == null)
-                        // 0th entry of an index column list might be null if index only has
-                        // regular columns!
-                        stringBuffer.append("(null), ");
-                    else
-                        stringBuffer.append(column.toString(false)).append(", ");
+                    stringBuffer.append(column.toString(false)).append(", ");
                 }
                 stringBuffer.delete(stringBuffer.length() - 2, stringBuffer.length());
                 stringBuffer.append(")");

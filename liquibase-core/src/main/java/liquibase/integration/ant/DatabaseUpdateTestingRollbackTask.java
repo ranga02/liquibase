@@ -1,6 +1,7 @@
 package liquibase.integration.ant;
 
 import liquibase.Contexts;
+import liquibase.LabelExpression;
 import liquibase.Liquibase;
 import liquibase.exception.LiquibaseException;
 import org.apache.tools.ant.BuildException;
@@ -9,7 +10,7 @@ import org.apache.tools.ant.BuildException;
  * Ant task for migrating a database forward testing rollback.
  */
 public class DatabaseUpdateTestingRollbackTask extends AbstractChangeLogBasedTask {
-    private boolean dropFirst;
+    private boolean dropFirst = false;
 
     @Override
     public void executeWithLiquibaseClassloader() throws BuildException {

@@ -1,16 +1,14 @@
 package liquibase.precondition.core;
 
-import liquibase.changelog.ChangeSet;
-import liquibase.changelog.visitor.ChangeExecListener;
 import liquibase.changelog.DatabaseChangeLog;
+import liquibase.changelog.ChangeSet;
 import liquibase.database.Database;
-import liquibase.exception.PreconditionErrorException;
-import liquibase.exception.PreconditionFailedException;
-import liquibase.exception.ValidationErrors;
-import liquibase.exception.Warnings;
 import liquibase.precondition.AbstractPrecondition;
 import liquibase.snapshot.SnapshotGeneratorFactory;
+import liquibase.snapshot.SnapshotGeneratorFactory;
 import liquibase.structure.core.Schema;
+import liquibase.exception.*;
+import liquibase.precondition.Precondition;
 import liquibase.structure.core.View;
 
 public class ViewExistsPrecondition extends AbstractPrecondition {
@@ -53,8 +51,7 @@ public class ViewExistsPrecondition extends AbstractPrecondition {
     }
 
     @Override
-    public void check(Database database, DatabaseChangeLog changeLog, ChangeSet changeSet, ChangeExecListener changeExecListener)
-            throws PreconditionFailedException, PreconditionErrorException {
+    public void check(Database database, DatabaseChangeLog changeLog, ChangeSet changeSet) throws PreconditionFailedException, PreconditionErrorException {
     	String currentSchemaName;
         String currentCatalogName;
     	try {

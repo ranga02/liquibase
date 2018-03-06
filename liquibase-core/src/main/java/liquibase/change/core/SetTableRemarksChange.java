@@ -1,8 +1,6 @@
 package liquibase.change.core;
 
-import liquibase.change.AbstractChange;
-import liquibase.change.ChangeMetaData;
-import liquibase.change.DatabaseChange;
+import liquibase.change.*;
 import liquibase.database.Database;
 import liquibase.exception.ValidationErrors;
 import liquibase.statement.SqlStatement;

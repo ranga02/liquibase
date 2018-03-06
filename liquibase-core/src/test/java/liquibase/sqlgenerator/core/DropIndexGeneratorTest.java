@@ -1,17 +1,18 @@
 package liquibase.sqlgenerator.core;
 
+import java.util.SortedSet;
+import java.util.TreeSet;
+
 import liquibase.database.Database;
 import liquibase.database.core.PostgresDatabase;
 import liquibase.sql.Sql;
 import liquibase.sqlgenerator.SqlGenerator;
 import liquibase.sqlgenerator.SqlGeneratorChain;
 import liquibase.statement.core.DropIndexStatement;
+import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.SortedSet;
-import java.util.TreeSet;
-
-import static org.junit.Assert.assertEquals;
+import static junit.framework.Assert.assertEquals;
 
 public class DropIndexGeneratorTest {
 //    @Test

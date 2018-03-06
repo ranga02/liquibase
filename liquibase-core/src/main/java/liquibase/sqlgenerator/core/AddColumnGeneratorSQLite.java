@@ -4,9 +4,8 @@ import liquibase.change.ColumnConfig;
 import liquibase.database.Database;
 import liquibase.database.core.SQLiteDatabase;
 import liquibase.exception.DatabaseException;
-import liquibase.logging.LogService;
-import liquibase.logging.LogType;
 import liquibase.sql.Sql;
+import liquibase.sql.UnparsedSql;
 import liquibase.sqlgenerator.SqlGeneratorChain;
 import liquibase.sqlgenerator.SqlGeneratorFactory;
 import liquibase.statement.SqlStatement;
@@ -39,7 +38,7 @@ public class AddColumnGeneratorSQLite extends AddColumnGenerator {
         // For more information see: http://www.sqlite.org/omitted.html.
         // This is a small work around...
 
-        List<Sql> sql = new ArrayList<>();
+        List<Sql> sql = new ArrayList<Sql>();
 
         // define alter table logic
         SQLiteDatabase.AlterTableVisitor rename_alter_visitor =
@@ -68,7 +67,8 @@ public class AddColumnGeneratorSQLite extends AddColumnGenerator {
             List<SqlStatement> alterTableStatements = SQLiteDatabase.getAlterTableStatements(rename_alter_visitor, database, statement.getCatalogName(), statement.getSchemaName(), statement.getTableName());
             sql.addAll(Arrays.asList(SqlGeneratorFactory.getInstance().generateSql(alterTableStatements.toArray(new SqlStatement[alterTableStatements.size()]), database)));
         } catch (DatabaseException e) {
-            LogService.getLog(getClass()).severe(LogType.LOG, "DatabaseException caught", e);
+            System.err.println(e);
+            e.printStackTrace();
         }
 
         return sql.toArray(new Sql[sql.size()]);

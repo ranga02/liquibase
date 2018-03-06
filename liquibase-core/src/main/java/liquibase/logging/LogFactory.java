@@ -1,12 +1,16 @@
 package liquibase.logging;
 
-import liquibase.Liquibase;
+import liquibase.exception.ServiceNotFoundException;
+import liquibase.logging.core.DefaultLogger;
+import liquibase.servicelocator.ServiceLocator;
 
-/**
- * @deprecated use {@link LogService} now.
- * This class is kept for compatibility with Liquibase 3.5 and prior.
- */
+import java.util.HashMap;
+import java.util.Map;
+
 public class LogFactory {
+    private final Map<String, Logger> loggers = new HashMap<String, Logger>();
+    private static String defaultLoggingLevel = null;
+    private static DefaultLogger defaultLogger = new DefaultLogger();
 
     private static LogFactory instance;
 
@@ -28,37 +32,58 @@ public class LogFactory {
         LogFactory.instance = instance;
     }
 
+    /**
+     * @deprecated Use non-static {@link #getLog(String)} method
+     */
     public static Logger getLogger(String name) {
         return getInstance().getLog(name);
     }
 
     public Logger getLog(String name) {
-        Class clazz;
-        try {
-            clazz = Class.forName(name);
-        } catch (ClassNotFoundException e) {
-            clazz = Liquibase.class;
+        if (!loggers.containsKey(name)) {
+            Logger value;
+            try {
+                ServiceLocator serviceLocator = ServiceLocator.getInstance();
+                if (serviceLocator == null) {
+                    return defaultLogger; //ServiceLocator not yet running
+                }
+                value = (Logger) serviceLocator.newInstance(Logger.class);
+            } catch (Exception e) {
+                return defaultLogger;
+            }
+            value.setName(name);
+            if (defaultLoggingLevel != null) {
+                value.setLogLevel(defaultLoggingLevel);
+            }
+            loggers.put(name, value);
         }
-        return LogService.getLog(clazz);
+
+        return loggers.get(name);
     }
 
+   /**
+     * @deprecated Use non-static {@link #getLog()} method
+     */
     public static Logger getLogger() {
         return getInstance().getLog();
     }
 
     public Logger getLog() {
-        return LogService.getLog(Liquibase.class);
+        return getLog("liquibase");
     }
 
     public void setDefaultLoggingLevel(String defaultLoggingLevel) {
-        LogService.getLog(getClass()).warning(LogType.LOG, "LogFactory.setDefaultLoggingLevel() is now a no-op.");
+        this.defaultLoggingLevel = defaultLoggingLevel;
     }
 
     public void setDefaultLoggingLevel(LogLevel defaultLoggingLevel) {
-        LogService.getLog(getClass()).warning(LogType.LOG, "LogFactory.setDefaultLoggingLevel() is now a no-op.");
+        this.defaultLoggingLevel = defaultLoggingLevel.name();
     }
 
+    /**
+     * @deprecated Use non-static {@link #setDefaultLoggingLevel(String)} method
+     */
     public static void setLoggingLevel(String defaultLoggingLevel) {
-        LogService.getLog(LogFactory.class).warning(LogType.LOG, "LogFactory.setLoggingLevel() is now a no-op.");
+        getInstance().defaultLoggingLevel = defaultLoggingLevel;
     }
 }

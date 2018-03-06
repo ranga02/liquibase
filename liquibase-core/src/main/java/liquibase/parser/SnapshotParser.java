@@ -1,5 +1,6 @@
 package liquibase.parser;
 
+import liquibase.database.Database;
 import liquibase.exception.LiquibaseParseException;
 import liquibase.resource.ResourceAccessor;
 import liquibase.snapshot.DatabaseSnapshot;

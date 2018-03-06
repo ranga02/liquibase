@@ -1,9 +1,8 @@
 package liquibase.test;
 
-import liquibase.diff.DiffResult;
 import liquibase.structure.core.ForeignKey;
-
-import static org.junit.Assert.fail;
+import liquibase.diff.DiffResult;
+import static org.junit.Assert.*;
 
 /**
  * Utility class to make asserts on diffresults
