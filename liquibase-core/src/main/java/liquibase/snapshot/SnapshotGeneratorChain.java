@@ -2,13 +2,15 @@ package liquibase.snapshot;
 
 import liquibase.exception.DatabaseException;
 import liquibase.structure.DatabaseObject;
+import liquibase.structure.core.Catalog;
+import liquibase.structure.core.Schema;
 
 import java.util.*;
 
 public class SnapshotGeneratorChain {
     private Iterator<SnapshotGenerator> snapshotGenerators;
 
-    private Set<Class<? extends SnapshotGenerator>> replacedGenerators = new HashSet<>();
+    private Set<Class<? extends SnapshotGenerator>> replacedGenerators = new HashSet<Class<? extends SnapshotGenerator>>();
     private SnapshotIdService snapshotIdService;
 
     public SnapshotGeneratorChain(SortedSet<SnapshotGenerator> snapshotGenerators) {
@@ -19,15 +21,14 @@ public class SnapshotGeneratorChain {
 
             for (SnapshotGenerator generator : snapshotGenerators) {
                 Class<? extends SnapshotGenerator>[] replaces = generator.replaces();
-                if ((replaces != null) && (replaces.length > 0)) {
+                if (replaces != null && replaces.length > 0) {
                     replacedGenerators.addAll(Arrays.asList(replaces));
                 }
             }
         }
     }
 
-    public <T extends DatabaseObject> T snapshot(T example, DatabaseSnapshot snapshot)
-            throws DatabaseException, InvalidExampleException {
+    public <T extends DatabaseObject> T snapshot(T example, DatabaseSnapshot snapshot) throws DatabaseException, InvalidExampleException {
         if (example == null) {
             return null;
         }
@@ -47,7 +48,7 @@ public class SnapshotGeneratorChain {
         }
 
         T obj = next.snapshot(example, snapshot, this);
-        if ((obj != null) && (obj.getSnapshotId() == null)) {
+        if (obj != null && obj.getSnapshotId() == null) {
             obj.setSnapshotId(snapshotIdService.generateId());
         }
         return obj;
@@ -64,7 +65,7 @@ public class SnapshotGeneratorChain {
 
         SnapshotGenerator next = snapshotGenerators.next();
         for (Class<? extends SnapshotGenerator> removedGenerator : replacedGenerators) {
-            if (removedGenerator.equals(next.getClass())) {
+            if (removedGenerator.isAssignableFrom(next.getClass())) {
                 return getNextValidGenerator();
             }
         }

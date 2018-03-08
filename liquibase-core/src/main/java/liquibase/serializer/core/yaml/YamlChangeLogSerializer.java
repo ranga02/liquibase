@@ -22,11 +22,11 @@ public class YamlChangeLogSerializer extends YamlSerializer implements ChangeLog
 
     @Override
     public <T extends ChangeLogChild> void write(List<T> children, OutputStream out) throws IOException {
-        List<Object> maps = new ArrayList<>();
+        List<Object> maps = new ArrayList<Object>();
         for (T changeSet : children) {
             maps.add(toMap(changeSet));
         }
-        Map<String, Object> containerMap = new HashMap<>();
+        Map<String, Object> containerMap = new HashMap<String, Object>();
         containerMap.put("databaseChangeLog", maps);
 
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out, LiquibaseConfiguration.getInstance().getConfiguration(GlobalConfiguration.class).getOutputEncoding()));
@@ -44,7 +44,7 @@ public class YamlChangeLogSerializer extends YamlSerializer implements ChangeLog
 
 
     private static class ChangeSetComparator implements Comparator<String> {
-        private static final Map<String, Integer> order = new HashMap<>();
+        private static final Map<String, Integer> order = new HashMap<String, Integer>();
 
         static {
             order.put("id", 1);

@@ -12,7 +12,7 @@ public class SqlVisitorFactory {
 
     @SuppressWarnings("unchecked")
 	private SqlVisitorFactory() {
-        tagToClassMap = new HashMap<>();
+        tagToClassMap = new HashMap<String, Class>();
         Class[] visitors = new Class[]{
                 PrependSqlVisitor.class,
                 AppendSqlVisitor.class,

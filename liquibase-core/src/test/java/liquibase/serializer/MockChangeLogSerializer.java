@@ -4,9 +4,9 @@ import liquibase.changelog.ChangeLogChild;
 import liquibase.changelog.ChangeSet;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.List;
+import java.io.OutputStream;
+import java.io.IOException;
 
 
 public class MockChangeLogSerializer implements ChangeLogSerializer {

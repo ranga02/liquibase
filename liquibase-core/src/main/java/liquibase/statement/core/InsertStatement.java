@@ -1,16 +1,16 @@
 package liquibase.statement.core;
 
-import liquibase.change.ColumnConfig;
-import liquibase.statement.AbstractSqlStatement;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import liquibase.change.ColumnConfig;
+import liquibase.statement.AbstractSqlStatement;
 
 public class InsertStatement extends AbstractSqlStatement {
     private String catalogName;
     private String schemaName;
     private String tableName;
-    private Map<String, Object> columnValues = new LinkedHashMap<>();
+    private Map<String, Object> columnValues = new LinkedHashMap<String, Object>();
 
     public InsertStatement(String catalogName, String schemaName, String tableName) {
         this.catalogName = catalogName;

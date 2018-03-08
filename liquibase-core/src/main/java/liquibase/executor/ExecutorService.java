@@ -11,7 +11,8 @@ public class ExecutorService {
 
     private static ExecutorService instance = new ExecutorService();
 
-    private Map<Database, Executor> executors = new ConcurrentHashMap<>();
+    private Map<Database, Executor> executors = new ConcurrentHashMap<Database, Executor>();
+
 
     private ExecutorService() {
     }

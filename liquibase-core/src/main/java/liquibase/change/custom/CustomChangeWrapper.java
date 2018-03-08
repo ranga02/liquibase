@@ -1,8 +1,8 @@
 package liquibase.change.custom;
 
 import liquibase.change.AbstractChange;
-import liquibase.change.ChangeMetaData;
 import liquibase.change.DatabaseChange;
+import liquibase.change.ChangeMetaData;
 import liquibase.change.DatabaseChangeProperty;
 import liquibase.database.Database;
 import liquibase.exception.*;
@@ -22,8 +22,7 @@ import java.util.*;
  * @see liquibase.change.custom.CustomTaskChange
  */
 @DatabaseChange(name="customChange",
-    description = "Although Liquibase tries to provide a wide range of database refactorings, there are times you may" +
-        " want to create your own custom refactoring class.\n" +
+        description = "Although Liquibase tries to provide a wide range of database refactorings, there are times you may want to create your own custom refactoring class.\n" +
                 "\n" +
                 "To create your own custom refactoring, simply create a class that implements the liquibase.change.custom.CustomSqlChange or liquibase.change.custom.CustomTaskChange interface and use the <custom> tag in your change set.\n" +
                 "\n" +
@@ -40,13 +39,13 @@ public class CustomChangeWrapper extends AbstractChange {
     
     private String className;
 
-    private SortedSet<String> params = new TreeSet<>();
+    private SortedSet<String> params = new TreeSet<String>();
 
-    private Map<String, String> paramValues = new HashMap<>();
+    private Map<String, String> paramValues = new HashMap<String, String>();
 
     private ClassLoader classLoader;
 
-    private boolean configured;
+    private boolean configured = false;
 
     @Override
     public boolean generateStatementsVolatile(Database database) {
@@ -71,10 +70,6 @@ public class CustomChangeWrapper extends AbstractChange {
 
     public void setClassLoader(ClassLoader classLoader) {
         this.classLoader = classLoader;
-    }
-
-    public CustomChangeWrapper setClassName(String className) throws CustomChangeException {
-        return setClass(className);
     }
 
     /**
@@ -105,7 +100,8 @@ public class CustomChangeWrapper extends AbstractChange {
     }
 
     /**
-     * Returns the name of the custom class set in {@link #setClass(String)}
+     * Return the name of the custom class set in {@link #setClass(String)}
+     * @return
      */
     @DatabaseChangeProperty(description = "Name class that implements the custom change.")
     public String getClassName() {
@@ -151,7 +147,7 @@ public class CustomChangeWrapper extends AbstractChange {
 
         try {
             return customChange.validate(database);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             return new ValidationErrors().addError("Exception thrown calling "+getClassName()+".validate():"+ e.getMessage());
         }
     }
@@ -175,7 +171,9 @@ public class CustomChangeWrapper extends AbstractChange {
     public SqlStatement[] generateStatements(Database database) {
         SqlStatement[] statements = null;
         try {
-            configureCustomChange();
+            if (!configured) {
+                configureCustomChange();
+            }
             if (customChange instanceof CustomSqlChange) {
                 statements = ((CustomSqlChange) customChange).generateStatements(database);
             } else if (customChange instanceof CustomTaskChange) {
@@ -204,7 +202,9 @@ public class CustomChangeWrapper extends AbstractChange {
     public SqlStatement[] generateRollbackStatements(Database database) throws RollbackImpossibleException {
         SqlStatement[] statements = null;
         try {
-            configureCustomChange();
+            if (!configured) {
+                configureCustomChange();
+            }
             if (customChange instanceof CustomSqlRollback) {
                 statements = ((CustomSqlRollback) customChange).generateRollbackStatements(database);
             } else if (customChange instanceof CustomTaskRollback) {
@@ -231,7 +231,7 @@ public class CustomChangeWrapper extends AbstractChange {
      */
     @Override
     public boolean supportsRollback(Database database) {
-        return (customChange instanceof CustomSqlRollback) || (customChange instanceof CustomTaskRollback);
+        return customChange instanceof CustomSqlRollback || customChange instanceof CustomTaskRollback;
     }
 
     /**
@@ -239,28 +239,16 @@ public class CustomChangeWrapper extends AbstractChange {
      */
     @Override
     public String getConfirmationMessage() {
-        try {
-            configureCustomChange();
-        } catch (CustomChangeException e) {
-            throw new UnexpectedLiquibaseException(e);
-        }
-
         return customChange.getConfirmationMessage();
     }
 
     private void configureCustomChange() throws CustomChangeException {
-        if (configured) {
-            return;
-        }
-
         try {
             for (String param : params) {
                 ObjectUtil.setProperty(customChange, param, paramValues.get(param));
             }
             customChange.setFileOpener(getResourceAccessor());
             customChange.setUp();
-
-            configured = true;
         } catch (Exception e) {
             throw new CustomChangeException(e);
         }
@@ -268,31 +256,29 @@ public class CustomChangeWrapper extends AbstractChange {
 
     @Override
     public SerializationType getSerializableFieldType(String field) {
-        switch (field) {
-            case "class":
-                return SerializationType.NAMED_FIELD;
-            case "param":
-                return SerializationType.NESTED_OBJECT;
-            default:
-                throw new UnexpectedLiquibaseException("Unexpected CustomChangeWrapper field " + field);
+        if (field.equals("class")) {
+            return SerializationType.NAMED_FIELD;
+        } else if (field.equals("param")) {
+            return SerializationType.NESTED_OBJECT;
+        } else {
+            throw new UnexpectedLiquibaseException("Unexpected CustomChangeWrapper field "+field);
         }
     }
 
     @Override
     public Object getSerializableFieldValue(String field) {
-        switch (field) {
-            case "class":
-                return getClassName();
-            case "param":
-                return this.paramValues;
-            default:
-                throw new UnexpectedLiquibaseException("Unexpected CustomChangeWrapper field " + field);
+        if (field.equals("class")) {
+            return getClassName();
+        } else if (field.equals("param")) {
+            return this.paramValues;
+        } else {
+            throw new UnexpectedLiquibaseException("Unexpected CustomChangeWrapper field "+field);
         }
     }
 
     @Override
     public Set<String> getSerializableFields() {
-        return new HashSet<>(Arrays.asList("class", "param"));
+        return new HashSet<String>(Arrays.asList("class", "param"));
     }
 
     @Override
@@ -337,7 +323,7 @@ public class CustomChangeWrapper extends AbstractChange {
         }
         for (ParsedNode node : parsedNode.getChildren()) {
             Object value = node.getValue();
-            if ((value != null) && ObjectUtil.hasProperty(customChange, node.getName())) {
+            if (value != null && ObjectUtil.hasProperty(customChange, node.getName())) {
                 this.setParam(node.getName(), value.toString());
             }
         }

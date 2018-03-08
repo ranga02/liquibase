@@ -1,7 +1,6 @@
 package liquibase.sqlgenerator.core;
 
 import liquibase.changelog.ChangeSet;
-import liquibase.changelog.column.LiquibaseColumn;
 import liquibase.database.Database;
 import liquibase.exception.ValidationErrors;
 import liquibase.sql.Sql;
@@ -28,9 +27,9 @@ public class UpdateChangeSetChecksumGenerator extends AbstractSqlGenerator<Updat
         SqlStatement runStatement = null;
         runStatement = new UpdateStatement(database.getLiquibaseCatalogName(), database.getLiquibaseSchemaName(), database.getDatabaseChangeLogTableName())
                 .addNewColumnValue("MD5SUM", changeSet.generateCheckSum().toString())
-                .setWhereClause(database.escapeObjectName("ID", LiquibaseColumn.class) + " = ? " +
-                        "AND " + database.escapeObjectName("AUTHOR", LiquibaseColumn.class) + " = ? " +
-                        "AND " + database.escapeObjectName("FILENAME", LiquibaseColumn.class) + " = ?")
+                .setWhereClause(database.escapeObjectName("ID", Column.class) + " = ? " +
+                        "AND " + database.escapeObjectName("AUTHOR", Column.class) + " = ? " +
+                        "AND " + database.escapeObjectName("FILENAME", Column.class) + " = ?")
                 .addWhereParameters(changeSet.getId(), changeSet.getAuthor(), changeSet.getFilePath());
 
         return SqlGeneratorFactory.getInstance().generateSql(runStatement, database);

@@ -30,28 +30,28 @@ public class BooleanParser {
             // it's not a number
             // cast it as a String
             String test = s.trim().toLowerCase();
-            if("true".equalsIgnoreCase(test)){
+            if(test.equalsIgnoreCase("true")){
                 return true;
             }
-            else if("t".equalsIgnoreCase(test)){
+            else if(test.equalsIgnoreCase("t")){
                 return true;
             }
-            else if("yes".equalsIgnoreCase(test)){
+            else if(test.equalsIgnoreCase("yes")){
                 return true;
             }
-            else if("y".equalsIgnoreCase(test)){
+            else if(test.equalsIgnoreCase("y")){
                 return true;
             }
-            else if("false".equalsIgnoreCase(test)){
+            else if(test.equalsIgnoreCase("false")){
                 return false;
             }
-            else if("f".equalsIgnoreCase(test)){
+            else if(test.equalsIgnoreCase("f")){
                 return false;
             }
-            else if("no".equalsIgnoreCase(test)){
+            else if(test.equalsIgnoreCase("no")){
                 return false;
             }
-            else if("n".equalsIgnoreCase(test)){
+            else if(test.equalsIgnoreCase("n")){
                 return false;
             }
             else{

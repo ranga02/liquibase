@@ -1,11 +1,10 @@
 package liquibase;
 
 import liquibase.database.Database;
+import liquibase.database.core.PostgresDatabase;
 import liquibase.structure.core.Catalog;
 import liquibase.structure.core.Schema;
 import liquibase.util.StringUtils;
-
-import java.util.Locale;
 
 /**
  * Object representing a database catalog and schema. This differs from {@link liquibase.structure.core.Schema} in that it has
@@ -14,17 +13,13 @@ import java.util.Locale;
  * A null value for catalogName or schemaName signifies the default catalog/schema.
  */
 public class CatalogAndSchema {
-    public static final CatalogAndSchema DEFAULT = new CatalogAndSchema(null, null);
     private String catalogName;
     private String schemaName;
+    public static final CatalogAndSchema DEFAULT = new CatalogAndSchema(null, null);
 
     public CatalogAndSchema(String catalogName, String schemaName) {
         this.catalogName = catalogName;
         this.schemaName = schemaName;
-    }
-
-    public enum CatalogAndSchemaCase {
-        LOWER_CASE, UPPER_CASE, ORIGINAL_CASE
     }
 
     public String getCatalogName() {
@@ -40,24 +35,25 @@ public class CatalogAndSchema {
             return true;
         }
 
-        CatalogAndSchema workCatalogAndSchema = catalogAndSchema.customize(accordingTo);
+        catalogAndSchema = catalogAndSchema.customize(accordingTo);
         CatalogAndSchema thisCatalogAndSchema = this.customize(accordingTo);
 
         boolean catalogMatches;
-        if (workCatalogAndSchema.getCatalogName() == null) {
+        if (catalogAndSchema.getCatalogName() == null) {
             catalogMatches = (thisCatalogAndSchema.getCatalogName() == null);
         } else {
-            catalogMatches = equals(accordingTo, workCatalogAndSchema.getCatalogName(),thisCatalogAndSchema.getCatalogName());
+            catalogMatches = catalogAndSchema.getCatalogName().equalsIgnoreCase(thisCatalogAndSchema.getCatalogName());
         }
+
         if (!catalogMatches) {
             return false;
         }
 
         if (accordingTo.supportsSchemas()) {
-            if (workCatalogAndSchema.getSchemaName() == null) {
+            if (catalogAndSchema.getSchemaName() == null) {
                 return thisCatalogAndSchema.getSchemaName() == null;
             } else {
-                return equals(accordingTo, workCatalogAndSchema.getSchemaName(), thisCatalogAndSchema.getSchemaName());
+                return catalogAndSchema.getSchemaName().equalsIgnoreCase(thisCatalogAndSchema.getSchemaName());
             }
         } else {
             return true;
@@ -70,59 +66,58 @@ public class CatalogAndSchema {
      * If the database does not support schemas, the returned object will have a null schema.
      * If the database does not support catalogs, the returned object will have a null catalog.
      * If either the schema or catalog matches the database default catalog or schema, they will be nulled out.
-     * Catalog and/or schema names will be upper case unless the database violates the SQL standard by being
-     * case-sensitive about some or all unquoted identifiers.
+     * Catalog and/or schema names will be upper case.
      *
-     * @see CatalogAndSchema#customize(liquibase.database.Database)
+     * @see {@link CatalogAndSchema#customize(liquibase.database.Database)}
      * */
     public CatalogAndSchema standardize(Database accordingTo) {
-        String workCatalogName = StringUtils.trimToNull(getCatalogName());
-        String workSchemaName = StringUtils.trimToNull(getSchemaName());
+        String catalogName = StringUtils.trimToNull(getCatalogName());
+        String schemaName = StringUtils.trimToNull(getSchemaName());
 
         if (!accordingTo.supportsCatalogs()) {
             return new CatalogAndSchema(null, null);
         }
 
         if (accordingTo.supportsSchemas()) {
-            if ((workSchemaName != null) && workSchemaName.equalsIgnoreCase(accordingTo.getDefaultSchemaName())) {
-                workSchemaName = null;
+            if (schemaName != null && schemaName.equalsIgnoreCase(accordingTo.getDefaultSchemaName())) {
+                schemaName = null;
             }
         } else {
-            if ((workCatalogName == null) && (workSchemaName != null)) { //had names in the wrong order
-                workCatalogName = workSchemaName;
+            if (catalogName == null && schemaName != null) { //had names in the wrong order
+                catalogName = schemaName;
             }
-            workSchemaName = workCatalogName;
+            schemaName = catalogName;
         }
 
-        if (workCatalogName != null && equals(accordingTo, workCatalogName, accordingTo.getDefaultCatalogName())) {
-            workCatalogName = null;
-        }
-        if (workSchemaName != null && equals(accordingTo, workSchemaName, accordingTo.getDefaultSchemaName())) {
-            workSchemaName = null;
-        }
-        if (!accordingTo.supportsSchemas() && (workCatalogName != null) && (workSchemaName != null) &&
-            !workCatalogName.equals(workSchemaName)) {
-            workSchemaName = null;
+        if (catalogName != null && catalogName.equalsIgnoreCase(accordingTo.getDefaultCatalogName())) {
+            catalogName = null;
         }
 
-        if (CatalogAndSchemaCase.LOWER_CASE.equals(accordingTo.getSchemaAndCatalogCase())) {
-            if (workCatalogName != null) {
-                workCatalogName = workCatalogName.toLowerCase(Locale.US);
+        if (schemaName != null && schemaName.equalsIgnoreCase(accordingTo.getDefaultSchemaName())) {
+            schemaName = null;
+        }
+
+        if (!accordingTo.supportsSchemas() && catalogName != null && schemaName != null && !catalogName.equals(schemaName)) {
+            schemaName = null;
+        }
+
+        if (accordingTo instanceof PostgresDatabase) {
+            if (catalogName != null) {
+                catalogName = catalogName.toLowerCase();
             }
-            if (workSchemaName != null) {
-                workSchemaName = workSchemaName.toLowerCase(Locale.US);
+            if (schemaName != null) {
+                schemaName = schemaName.toLowerCase();
             }
-        } else if (CatalogAndSchemaCase.UPPER_CASE.equals(accordingTo.getSchemaAndCatalogCase())) {
-            if (!accordingTo.isCaseSensitive()) {
-                if (workCatalogName != null) {
-                    workCatalogName = workCatalogName.toUpperCase(Locale.US);
-                }
-                if (workSchemaName != null) {
-                    workSchemaName = workSchemaName.toUpperCase(Locale.US);
-                }
+        } else {
+            if (catalogName != null) {
+                catalogName = catalogName.toUpperCase();
+            }
+            if (schemaName != null) {
+                schemaName = schemaName.toUpperCase();
             }
         }
-        return new CatalogAndSchema(workCatalogName, workSchemaName);
+
+        return new CatalogAndSchema(catalogName, schemaName);
 
     }
 
@@ -132,33 +127,33 @@ public class CatalogAndSchema {
      * retain a null value.
      * Catalog and schema capitalization will match what the database expects.
      *
-     * @see CatalogAndSchema#standardize(liquibase.database.Database)
+     * @see {@link CatalogAndSchema#standardize(liquibase.database.Database)}
      */
     public CatalogAndSchema customize(Database accordingTo) {
         CatalogAndSchema standard = standardize(accordingTo);
 
-        String workCatalogName = standard.getCatalogName();
-        String workSchemaName = standard.getSchemaName();
+        String catalogName = standard.getCatalogName();
+        String schemaName = standard.getSchemaName();
 
-        if (workCatalogName == null) {
-            if (!accordingTo.supportsSchemas() && (workSchemaName != null)) {
-                return new CatalogAndSchema(accordingTo.correctObjectName(workSchemaName, Catalog.class), null);
+        if (catalogName == null) {
+            if (!accordingTo.supportsSchemas() && schemaName != null) {
+                return new CatalogAndSchema(accordingTo.correctObjectName(schemaName, Catalog.class), null);
             }
-            workCatalogName = accordingTo.getDefaultCatalogName();
+            catalogName = accordingTo.getDefaultCatalogName();
         }
 
-        if (workSchemaName == null) {
-            workSchemaName = accordingTo.getDefaultSchemaName();
+        if (schemaName == null) {
+            schemaName = accordingTo.getDefaultSchemaName();
         }
 
-        if (workCatalogName != null) {
-            workCatalogName = accordingTo.correctObjectName(workCatalogName, Catalog.class);
+        if (catalogName != null) {
+            catalogName = accordingTo.correctObjectName(catalogName, Catalog.class);
         }
-        if (workSchemaName != null) {
-            workSchemaName = accordingTo.correctObjectName(workSchemaName, Schema.class);
+        if (schemaName != null) {
+            schemaName = accordingTo.correctObjectName(schemaName, Schema.class);
         }
 
-        return new CatalogAndSchema(workCatalogName, workSchemaName);
+        return new CatalogAndSchema(catalogName, schemaName);
     }
 
     /**
@@ -166,36 +161,16 @@ public class CatalogAndSchema {
      */
     @Override
     public String toString() {
-        String tmpCatalogName = getCatalogName();
-        String tmpSchemaName = getSchemaName();
+        String catalogName = getCatalogName();
+        String schemaName = getSchemaName();
 
-        if (tmpCatalogName == null) {
-            tmpCatalogName = "DEFAULT";
+        if (catalogName == null) {
+            catalogName = "DEFAULT";
         }
-        if (tmpSchemaName == null) {
-            tmpSchemaName = "DEFAULT";
+        if (schemaName == null) {
+            schemaName = "DEFAULT";
         }
 
-        return tmpCatalogName + "." + tmpSchemaName;
+        return catalogName+"."+schemaName;
     }
-
-    /**
-     * This method does schema or catalog comparision
-     *
-     * @param database - it's db object to getSchemaAndCatalogCase
-     * @param value1 - schema or catalog to compare with value2
-     * @param value2 - schema or catalog to compare with value1
-     *
-     * @return true if value1 and value2 equal
-     */
-    private boolean equals(Database database, String value1, String value2) {
-        CatalogAndSchemaCase schemaAndCatalogCase = database.getSchemaAndCatalogCase();
-        if (CatalogAndSchemaCase.UPPER_CASE.equals(schemaAndCatalogCase) ||
-                CatalogAndSchemaCase.LOWER_CASE.equals(schemaAndCatalogCase)) {
-            return value1.equalsIgnoreCase(value2);
-        }
-
-        return value1.equals(value2);
-    }
-
 }

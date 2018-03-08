@@ -1,12 +1,13 @@
 package liquibase.statement.core;
 
-import liquibase.statement.AbstractSqlStatement;
-
 import java.util.LinkedList;
 import java.util.List;
 
+import liquibase.statement.AbstractSqlStatement;
+import liquibase.statement.core.InsertStatement;
+
 public class InsertSetStatement extends AbstractSqlStatement {
-    private LinkedList<InsertStatement> inserts = new LinkedList<>();
+    private LinkedList<InsertStatement> inserts = new LinkedList<InsertStatement>();
     private String catalogName;
     private String schemaName;
     private String tableName;

@@ -1,12 +1,9 @@
 package liquibase.util;
 
+import java.util.regex.PatternSyntaxException;
 import org.junit.After;
 import org.junit.Test;
-
-import java.util.regex.PatternSyntaxException;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  *

@@ -1,8 +1,6 @@
 package liquibase.change.core;
 
-import liquibase.change.ChangeMetaData;
-import liquibase.change.ColumnConfig;
-import liquibase.change.DatabaseChange;
+import liquibase.change.*;
 import liquibase.database.Database;
 import liquibase.parser.core.ParsedNode;
 import liquibase.parser.core.ParsedNodeException;
@@ -19,7 +17,7 @@ public class DeleteDataChange extends AbstractModifyDataChange {
 
         DeleteStatement statement = new DeleteStatement(getCatalogName(), getSchemaName(), getTableName());
 
-        statement.setWhere(where);
+        statement.setWhereClause(where);
 
         for (ColumnConfig whereParam : whereParams) {
             if (whereParam.getName() != null) {

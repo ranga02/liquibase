@@ -5,6 +5,7 @@ import liquibase.changelog.ChangeSet;
 import liquibase.exception.UnexpectedLiquibaseException;
 import liquibase.serializer.LiquibaseSerializable;
 import liquibase.serializer.LiquibaseSerializer;
+import liquibase.statement.ColumnConstraint;
 import liquibase.statement.DatabaseFunction;
 import liquibase.statement.SequenceCurrentValueFunction;
 import liquibase.statement.SequenceNextValueFunction;
@@ -55,7 +56,7 @@ public abstract class YamlSerializer implements LiquibaseSerializer {
     }
 
     protected boolean isJson() {
-        return "json".equals(getValidFileExtensions()[0]);
+        return getValidFileExtensions()[0].equals("json");
     }
 
     @Override
@@ -70,7 +71,11 @@ public abstract class YamlSerializer implements LiquibaseSerializer {
     public String serialize(LiquibaseSerializable object, boolean pretty) {
         if (isJson()) {
             String out = yaml.dumpAs(toMap(object), Tag.MAP, DumperOptions.FlowStyle.FLOW);
-            return removeClassTypeMarksFromSerializedJson(out);
+            out = out.replaceAll("!!int \"(\\d+)\"", "$1");
+            out = out.replaceAll("!!bool \"(\\w+)\"", "$1");
+            out = out.replaceAll("!!timestamp \"([^\"]*)\"", "$1");
+            out = out.replaceAll("!!float \"([^\"]*)\"", "$1");
+            return out;
         } else {
             return yaml.dumpAsMap(toMap(object));
         }
@@ -79,7 +84,7 @@ public abstract class YamlSerializer implements LiquibaseSerializer {
     protected Object toMap(LiquibaseSerializable object) {
         Comparator<String> comparator;
         comparator = getComparator(object);
-        Map<String, Object> objectMap = new TreeMap<>(comparator);
+        Map<String, Object> objectMap = new TreeMap<String, Object>(comparator);
 
         for (String field : object.getSerializableFields()) {
             Object value = object.getSerializableFieldValue(field);
@@ -98,7 +103,7 @@ public abstract class YamlSerializer implements LiquibaseSerializer {
                 }
                 if (value instanceof Collection) {
                     List valueAsList = new ArrayList((Collection) value);
-                    if (valueAsList.isEmpty()) {
+                    if (valueAsList.size() == 0) {
                         continue;
                     }
                     for (int i = 0; i < valueAsList.size(); i++) {
@@ -110,7 +115,7 @@ public abstract class YamlSerializer implements LiquibaseSerializer {
 
                 }
                 if (value instanceof Map) {
-                    if  (((Map) value).isEmpty()) {
+                    if  (((Map) value).size() == 0) {
                         continue;
                     }
 
@@ -120,7 +125,7 @@ public abstract class YamlSerializer implements LiquibaseSerializer {
                             ((Map) value).put(key, toMap((LiquibaseSerializable) mapValue));
                         } else if (mapValue instanceof Collection) {
                             List valueAsList = new ArrayList((Collection) mapValue);
-                            if (valueAsList.isEmpty()) {
+                            if (valueAsList.size() == 0) {
                                 continue;
                             }
                             for (int i = 0; i < valueAsList.size(); i++) {
@@ -138,7 +143,7 @@ public abstract class YamlSerializer implements LiquibaseSerializer {
             }
         }
 
-        Map<String, Object> containerMap = new HashMap<>();
+        Map<String, Object> containerMap = new HashMap<String, Object>();
         containerMap.put(object.getSerializedObjectName(), objectMap);
         return containerMap;
     }
@@ -150,18 +155,6 @@ public abstract class YamlSerializer implements LiquibaseSerializer {
                 return o1.compareTo(o2);
             }
         };
-    }
-
-    private String removeClassTypeMarksFromSerializedJson(String json) {
-        json = json.replaceAll("!!int \"(\\d+)\"", "$1");
-        json = json.replaceAll("!!bool \"(\\w+)\"", "$1");
-        json = json.replaceAll("!!timestamp \"([^\"]*)\"", "$1");
-        json = json.replaceAll("!!float \"([^\"]*)\"", "$1");
-        json = json.replaceAll("!!liquibase.[^\\s]+ (\"\\w+\")", "$1");
-        if (json.contains("!!")) {
-            throw new IllegalStateException(String.format("Serialize failed. Illegal char on %s position: %s", json.indexOf("!!"), json));
-        }
-        return json;
     }
 
     public static class LiquibaseRepresenter extends Representer {
@@ -199,7 +192,7 @@ public abstract class YamlSerializer implements LiquibaseSerializer {
 
         @Override
         protected Set<Property> getProperties(Class<? extends Object> type) throws IntrospectionException {
-            Set<Property> returnSet = new HashSet<>();
+            Set<Property> returnSet = new HashSet<Property>();
             LiquibaseSerializable serialzableType = null;
             try {
                 if (type.equals(ChangeSet.class)) {
@@ -209,7 +202,9 @@ public abstract class YamlSerializer implements LiquibaseSerializer {
                 } else {
                     return super.getProperties(type);
                 }
-            } catch (InstantiationException | IllegalAccessException e) {
+            } catch (InstantiationException e) {
+                throw new UnexpectedLiquibaseException(e);
+            } catch (IllegalAccessException e) {
                 throw new UnexpectedLiquibaseException(e);
             }
             for (String property : serialzableType.getSerializableFields()) {

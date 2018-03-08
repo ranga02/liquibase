@@ -1,6 +1,5 @@
 package liquibase.datatype.core;
 
-import liquibase.change.core.LoadDataChange;
 import liquibase.database.Database;
 import liquibase.database.core.*;
 import liquibase.datatype.DataTypeInfo;
@@ -31,8 +30,7 @@ public class MediumIntType extends LiquibaseDataType {
             type.addAdditionalInformation(getAdditionalInformation());
             return type;
         }
-        if ((database instanceof AbstractDb2Database) || (database instanceof DerbyDatabase) || (database instanceof
-            FirebirdDatabase)) {
+        if (database instanceof DB2Database || database instanceof DerbyDatabase || database instanceof FirebirdDatabase) {
             return new DatabaseDataType("MEDIUMINT"); //always smallint regardless of parameters passed
         }
         return super.toDatabaseDataType(database);
@@ -40,7 +38,7 @@ public class MediumIntType extends LiquibaseDataType {
 
     @Override
     public String objectToSql(Object value, Database database) {
-        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
+        if (value == null || value.toString().equalsIgnoreCase("null")) {
             return null;
         }
         if (value instanceof DatabaseFunction) {
@@ -54,8 +52,4 @@ public class MediumIntType extends LiquibaseDataType {
         }
     }
 
-    @Override
-    public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
-        return LoadDataChange.LOAD_DATA_TYPE.NUMERIC;
-    }
 }

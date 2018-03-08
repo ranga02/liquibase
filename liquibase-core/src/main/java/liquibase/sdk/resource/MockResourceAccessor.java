@@ -7,6 +7,7 @@ import liquibase.resource.ResourceAccessor;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.*;
 
 public class MockResourceAccessor implements ResourceAccessor {
@@ -30,13 +31,13 @@ public class MockResourceAccessor implements ResourceAccessor {
         if (stream == null) {
             return null;
         } else {
-            return new HashSet<>(Arrays.asList(stream));
+            return new HashSet<InputStream>(Arrays.asList(stream));
         }
     }
 
     @Override
     public Set<String> list(String relativeTo, String path, boolean includeFiles, boolean includeDirectories, boolean recursive) throws IOException {
-        Set<String> returnSet = new HashSet<>();
+        Set<String> returnSet = new HashSet<String>();
         for (String file : contentByFileName.keySet()) {
             if (file.startsWith(path)) {
                 returnSet.add(file);

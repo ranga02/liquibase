@@ -9,8 +9,8 @@ import java.util.regex.Pattern;
 
 public class LabelExpression {
 
-    private HashSet<String> labels = new LinkedHashSet<>();
-    private String originalString;
+    private HashSet<String> labels = new LinkedHashSet<String>();
+    private String originalString = null;
 
     public LabelExpression() {
     }
@@ -66,17 +66,17 @@ public class LabelExpression {
         if (originalString != null) {
             return originalString;
         }
-        return "(" + StringUtils.join(new TreeSet<>(this.labels), "), (") + ")";
+        return "(" + StringUtils.join(new TreeSet(this.labels), "), (") + ")";
     }
 
     /**
      * Returns true if the passed runtime labels match this label expression
      */
     public boolean matches(Labels runtimeLabels) {
-        if ((runtimeLabels == null) || runtimeLabels.isEmpty()) {
+        if (runtimeLabels == null || runtimeLabels.isEmpty()) {
             return true;
         }
-        if (this.labels.isEmpty()) {
+        if (this.labels.size() == 0) {
             return true;
         }
 
@@ -93,10 +93,10 @@ public class LabelExpression {
             return true;
         }
 
-        if (":TRUE".equals(expression.trim())) {
+        if (expression.trim().equals(":TRUE")) {
             return true;
         }
-        if (":FALSE".equals(expression.trim())) {
+        if (expression.trim().equals(":FALSE")) {
             return false;
         }
 
@@ -143,10 +143,10 @@ public class LabelExpression {
             expression = expression.substring(4);
         }
 
-        if (":TRUE".equals(expression.trim())) {
+        if (expression.trim().equals(":TRUE")) {
             return !notExpression;
         }
-        if (":FALSE".equals(expression.trim())) {
+        if (expression.trim().equals(":FALSE")) {
             return notExpression;
         }
 
@@ -161,7 +161,7 @@ public class LabelExpression {
     }
 
     public boolean isEmpty() {
-        return (this.labels == null) || this.labels.isEmpty();
+        return this.labels == null || this.labels.size() == 0;
     }
 
 }

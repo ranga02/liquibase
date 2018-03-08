@@ -1,19 +1,21 @@
 package liquibase.parser.core.xml;
 
-import liquibase.logging.LogService;
-import liquibase.logging.LogType;
-import liquibase.logging.Logger;
-import liquibase.parser.LiquibaseParser;
-import liquibase.resource.ResourceAccessor;
-import liquibase.serializer.LiquibaseSerializer;
-import liquibase.util.StreamUtil;
-import liquibase.util.file.FilenameUtils;
+import java.io.IOException;
+import java.io.InputStream;
+
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.ext.EntityResolver2;
 
-import java.io.IOException;
-import java.io.InputStream;
+import liquibase.logging.LogFactory;
+import liquibase.logging.Logger;
+import liquibase.parser.LiquibaseParser;
+import liquibase.parser.NamespaceDetails;
+import liquibase.parser.NamespaceDetailsFactory;
+import liquibase.resource.ResourceAccessor;
+import liquibase.serializer.LiquibaseSerializer;
+import liquibase.util.StreamUtil;
+import liquibase.util.file.FilenameUtils;
 
 /**
  * Finds the Liquibase schema from the classpath rather than fetching it over the Internet.
@@ -26,7 +28,7 @@ public class LiquibaseEntityResolver implements EntityResolver2 {
     private ResourceAccessor resourceAccessor;
     private String basePath;
 
-    private Logger log= LogService.getLog(getClass());
+    private Logger log=LogFactory.getLogger();
 
     public LiquibaseEntityResolver(LiquibaseSerializer serializer) {
         this.serializer = serializer;
@@ -48,10 +50,10 @@ public class LiquibaseEntityResolver implements EntityResolver2 {
 
    @Override
    public InputSource resolveEntity(String name, String publicId, String baseURI, String systemId) throws SAXException, IOException {
-       log.debug(LogType.LOG, "Resolving XML entity name='" + name + "', publicId='" + publicId + "', baseURI='" + baseURI + "', systemId='" + systemId + "'");
+       log.debug("Resolving XML entity name='" + name + "', publicId='" + publicId + "', baseURI='" + baseURI + "', systemId='" + systemId + "'");
 
        if(systemId == null){
-           log.debug(LogType.LOG, "Unable to resolve XML entity locally. Will load from network.");
+           log.debug("Unable to resolve XML entity locally. Will load from network.");
            return null;
        }
 
@@ -63,12 +65,12 @@ public class LiquibaseEntityResolver implements EntityResolver2 {
             resolved = tryResolveLiquibaseSchema(systemId, publicId);
        }
 
-	   if((resolved == null) && (resourceAccessor != null) && (basePath != null)) {
+	   if(resolved==null && resourceAccessor!=null && basePath!=null) {
             resolved =  tryResolveFromResourceAccessor(systemId);
        }
 
        if (resolved == null) {
-            log.debug(LogType.LOG, "Unable to resolve XML entity locally. Will load from network.");
+            log.debug("Unable to resolve XML entity locally. Will load from network.");
        }
        return resolved;
     }
@@ -84,12 +86,12 @@ public class LiquibaseEntityResolver implements EntityResolver2 {
 
     private InputSource tryResolveFromResourceAccessor(String systemId) {
         String path=FilenameUtils.concat(basePath, systemId);
-        log.debug(LogType.LOG, "Attempting to load "+systemId+" from resourceAccessor as "+path);
+        log.debug("Attempting to load "+systemId+" from resourceAccessor as "+path);
 
         try {
             InputStream resourceAsStream = StreamUtil.singleInputStream(path, resourceAccessor);
             if (resourceAsStream == null) {
-                log.debug(LogType.LOG, "Could not load "+systemId+" from resourceAccessor as "+path);
+                log.debug("Could not load "+systemId+" from resourceAccessor as "+path);
                 return null;
             }
             return new InputSource(resourceAsStream);
@@ -105,7 +107,7 @@ public class LiquibaseEntityResolver implements EntityResolver2 {
 
     @Override
     public InputSource resolveEntity(String publicId, String systemId) throws SAXException, IOException {
-        log.warning(LogType.LOG, "Current XML parsers seems to not support EntityResolver2. External entities won't be correctly loaded");
+        log.warning("Current XML parsers seems to not support EntityResolver2. External entities won't be correctly loaded");
         return tryResolveLiquibaseSchema(systemId, publicId);
     }
 

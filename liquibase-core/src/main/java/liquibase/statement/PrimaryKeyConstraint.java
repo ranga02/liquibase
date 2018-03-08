@@ -12,7 +12,7 @@ public class PrimaryKeyConstraint implements ColumnConstraint {
 	// used for PK's index configuration
 	private String tablespace;
     
-    private List<String> columns = new ArrayList<>();
+    private List<String> columns = new ArrayList<String>();
 
     public PrimaryKeyConstraint() {
     }

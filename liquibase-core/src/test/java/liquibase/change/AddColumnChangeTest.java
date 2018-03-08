@@ -5,6 +5,7 @@ import liquibase.database.core.DB2Database;
 import liquibase.sdk.database.MockDatabase;
 import liquibase.statement.SqlStatement;
 import liquibase.statement.core.AddColumnStatement;
+
 import liquibase.statement.core.ReorganizeTableStatement;
 import org.junit.Assert;
 import org.junit.Test;

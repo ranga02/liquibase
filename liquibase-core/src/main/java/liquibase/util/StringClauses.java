@@ -1,7 +1,5 @@
 package liquibase.util;
 
-import java.math.BigInteger;
-import java.security.SecureRandom;
 import java.util.*;
 
 /**
@@ -17,8 +15,7 @@ public class StringClauses {
     private final String separator;
     private final String start;
     private final String end;
-    private final Random random = new SecureRandom();
-    private LinkedHashMap<String, Object> clauses = new LinkedHashMap<>();
+    private LinkedHashMap<String, Object> clauses = new LinkedHashMap<String, Object>();
 
     /**
      * Creates a new StringClause with no start or end strings and a space separator.
@@ -67,7 +64,7 @@ public class StringClauses {
         }
 
         while (generateOne) {
-            key = StringUtils.leftPad(new BigInteger(50, random).toString(32), 6).replace(" ", "0").substring(0,6);
+            key = UUID.randomUUID().toString().replace("-", "").substring(0,6);
             generateOne = clauses.containsKey(key);
         }
         return key;
@@ -136,7 +133,7 @@ public class StringClauses {
 
     public StringClauses prepend(LiteralClause literal) {
         if (literal != null) {
-            LinkedHashMap<String, Object> newMap = new LinkedHashMap<>();
+            LinkedHashMap<String, Object> newMap = new LinkedHashMap<String, Object>();
             newMap.put(uniqueKey(literal.getClass().getName().toLowerCase()), literal);
             newMap.putAll(this.clauses);
             this.clauses = newMap;
@@ -192,7 +189,7 @@ public class StringClauses {
             throw new IllegalArgumentException("Cannot add clause with key '" + key + "' because it is already defined");
         }
 
-        LinkedHashMap<String, Object> newMap = new LinkedHashMap<>();
+        LinkedHashMap<String, Object> newMap = new LinkedHashMap<String, Object>();
         newMap.put(key, clause);
         newMap.putAll(this.clauses);
         this.clauses = newMap;
@@ -266,7 +263,7 @@ public class StringClauses {
         if (!clauses.containsKey(key)) {
             throw new IllegalArgumentException("Key '" + key + "' is not defined");
         }
-        LinkedHashMap<String, Object> newMap = new LinkedHashMap<>();
+        LinkedHashMap<String, Object> newMap = new LinkedHashMap<String, Object>();
         for (Map.Entry<String, Object> entry : clauses.entrySet()) {
             if (entry.getKey().equals(key)) {
                 newMap.put(key, newValue);
@@ -324,7 +321,7 @@ public class StringClauses {
         if (!clauses.containsKey(existingKey)) {
             throw new IllegalArgumentException("Existing key '" + existingKey + "' does not exist");
         }
-        if ("".equals(newKey)) {
+        if (newKey.equals("")) {
             throw new IllegalArgumentException("New key cannot be null or empty");
         }
 
@@ -332,7 +329,7 @@ public class StringClauses {
             throw new IllegalArgumentException("Cannot add clause with key '" + newKey + "' because it is already defined");
         }
 
-        LinkedHashMap<String, Object> newMap = new LinkedHashMap<>();
+        LinkedHashMap<String, Object> newMap = new LinkedHashMap<String, Object>();
         for (Map.Entry<String, Object> entry : clauses.entrySet()) {
             if (entry.getKey().equals(existingKey)) {
                 newMap.put(newKey, newValue);
@@ -385,7 +382,7 @@ public class StringClauses {
             throw new IllegalArgumentException("Cannot add clause with key '" + newKey + "' because it is already defined");
         }
 
-        LinkedHashMap<String, Object> newMap = new LinkedHashMap<>();
+        LinkedHashMap<String, Object> newMap = new LinkedHashMap<String, Object>();
         for (Map.Entry<String, Object> entry : clauses.entrySet()) {
             newMap.put(entry.getKey(), entry.getValue());
             if (entry.getKey().equals(existingKey)) {
@@ -461,15 +458,15 @@ public class StringClauses {
 
     @Override
     public String toString() {
-        if (clauses.isEmpty()) {
+        if (clauses.size() == 0) {
             return "";
         }
 
-        List finalList = new ArrayList<>(clauses.values());
+        List finalList = new ArrayList(clauses.values());
         ListIterator iterator = finalList.listIterator();
         while (iterator.hasNext()) {
             Object next = iterator.next();
-            if ((next == null) || "".equals(next.toString())) {
+            if (next == null || next.toString().equals("")) {
                 iterator.remove();
             }
         }
@@ -481,7 +478,7 @@ public class StringClauses {
 
     public Object[] toArray(boolean stringify) {
         Object[] returnArray = new Object[clauses.size()];
-        ArrayList<Object> currentValues = new ArrayList<>(clauses.values());
+        ArrayList<Object> currentValues = new ArrayList<Object>(clauses.values());
 
         for (int i=0; i<currentValues.size(); i++) {
             if (stringify) {
@@ -495,18 +492,18 @@ public class StringClauses {
     }
 
     public boolean isEmpty() {
-        if (clauses.isEmpty()) {
+        if (clauses.size() == 0) {
             return true;
         }
         for (Object clause : clauses.values()) {
-            if ((clause != null) && !"".equals(clause.toString().trim())) {
+            if (clause != null && !clause.toString().trim().equals("")) {
                 return false;
             }
         }
         return true;
     }
 
-    public interface LiteralClause {
+    public static interface LiteralClause {
         String toString();
     }
 
@@ -551,11 +548,11 @@ public class StringClauses {
 
     public static class ClauseIterator implements Iterator {
 
-        private final LinkedHashMap<String, Object> clauses;
         private ListIterator<String> keyIterator;
+        private final LinkedHashMap<String, Object> clauses;
 
         public ClauseIterator(LinkedHashMap<String, Object> clauses) {
-            this.keyIterator = new ArrayList<String>(clauses.keySet()).listIterator();
+            this.keyIterator = new ArrayList(clauses.keySet()).listIterator();
             this.clauses = clauses;
         }
 

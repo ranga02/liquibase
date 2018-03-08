@@ -1,12 +1,16 @@
 package liquibase.change.core;
 
-import liquibase.change.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import liquibase.change.AbstractChange;
+import liquibase.change.Change;
+import liquibase.change.ChangeMetaData;
+import liquibase.change.DatabaseChange;
+import liquibase.change.DatabaseChangeProperty;
 import liquibase.database.Database;
 import liquibase.statement.SqlStatement;
 import liquibase.statement.core.RenameSequenceStatement;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Renames an existing table.
@@ -61,7 +65,7 @@ public class RenameSequenceChange extends AbstractChange {
     
     @Override
     public SqlStatement[] generateStatements(Database database) {
-        List<SqlStatement> statements = new ArrayList<>();
+        List<SqlStatement> statements = new ArrayList<SqlStatement>();
         statements.add(new RenameSequenceStatement(getCatalogName(), getSchemaName(), getOldSequenceName(), getNewSequenceName()));
         return statements.toArray(new SqlStatement[statements.size()]);
     }

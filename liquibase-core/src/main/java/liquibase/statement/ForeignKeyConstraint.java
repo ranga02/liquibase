@@ -8,9 +8,9 @@ public class ForeignKeyConstraint implements ColumnConstraint {
     private String referencedTableSchemaName;
     private String referencedTableName;
     private String referencedColumnNames;
-    private boolean deleteCascade;
-    private boolean initiallyDeferred;
-    private boolean deferrable;
+    private boolean deleteCascade = false;
+    private boolean initiallyDeferred = false;
+    private boolean deferrable = false;
 
     public ForeignKeyConstraint(String foreignKeyName,String references) {
         this.foreignKeyName = foreignKeyName;

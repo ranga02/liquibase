@@ -1,5 +1,11 @@
 package liquibase.executor;
 
+import java.io.IOException;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import liquibase.database.Database;
 import liquibase.database.core.MSSQLDatabase;
 import liquibase.database.core.OracleDatabase;
@@ -11,20 +17,14 @@ import liquibase.sql.visitor.SqlVisitor;
 import liquibase.sqlgenerator.SqlGeneratorFactory;
 import liquibase.statement.ExecutablePreparedStatement;
 import liquibase.statement.SqlStatement;
-import liquibase.statement.core.*;
+import liquibase.statement.core.CreateProcedureStatement;
+import liquibase.statement.core.GetNextChangeSetSequenceValueStatement;
+import liquibase.statement.core.LockDatabaseChangeLogStatement;
+import liquibase.statement.core.RawSqlStatement;
+import liquibase.statement.core.SelectFromDatabaseChangeLogLockStatement;
+import liquibase.statement.core.UnlockDatabaseChangeLogStatement;
 import liquibase.util.StreamUtil;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-/**
- * A variant of the Executor service that does not actually modify the target database(s). Instead, it creates
- * the SQL statements that <i>would</i> be executed. This is intended for cautious DBAs who want to examine and verify
- * the generated changes.
- */
 @LiquibaseService(skip = true)
 public class LoggingExecutor extends AbstractExecutor {
 
@@ -54,7 +54,9 @@ public class LoggingExecutor extends AbstractExecutor {
     public int update(SqlStatement sql) throws DatabaseException {
         outputStatement(sql);
 
-        if ((sql instanceof LockDatabaseChangeLogStatement) || (sql instanceof UnlockDatabaseChangeLogStatement)) {
+        if (sql instanceof LockDatabaseChangeLogStatement) {
+            return 1;
+        } else if (sql instanceof UnlockDatabaseChangeLogStatement) {
             return 1;
         }
 
@@ -91,12 +93,10 @@ public class LoggingExecutor extends AbstractExecutor {
     private void outputStatement(SqlStatement sql, List<SqlVisitor> sqlVisitors) throws DatabaseException {
         try {
             if (SqlGeneratorFactory.getInstance().generateStatementsVolatile(sql, database)) {
-                throw new DatabaseException(sql.getClass().getSimpleName()+" requires access to up to date database " +
-                        "metadata which is not available in SQL output mode");
+                throw new DatabaseException(sql.getClass().getSimpleName()+" requires access to up to date database metadata which is not available in SQL output mode");
             }
             if (sql instanceof ExecutablePreparedStatement) {
-                output.write("WARNING: This statement uses a prepared statement which cannot be execute directly " +
-                        "by this script. Only works in 'update' mode\n\n");
+                output.write("WARNING: This statement uses a prepared statement which cannot be execute directly by this script. Only works in 'update' mode\n\n");
             }
 
             for (String statement : applyVisitors(sql, sqlVisitors)) {
@@ -104,20 +104,20 @@ public class LoggingExecutor extends AbstractExecutor {
                     continue;
                 }
 
-                //remove trailing "/"
-                if (database instanceof OracleDatabase) {
-                    //all trailing "/"s
-                    while (statement.matches("(?s).*[\\s\\r\\n]*/[\\s\\r\\n]*$")) {
+                if (database instanceof OracleDatabase) { //remove trailing /
+                    while (statement.matches("(?s).*[\\s\\r\\n]*/[\\s\\r\\n]*$")) { //all trailing /'s
                         statement = statement.replaceFirst("[\\s\\r\\n]*/[\\s\\r\\n]*$", "");
                     }
                 }
 
                 output.write(statement);
 
-                if ((database instanceof MSSQLDatabase) || (database instanceof SybaseDatabase) || (database
-                    instanceof SybaseASADatabase)) {
+                if (database instanceof MSSQLDatabase || database instanceof SybaseDatabase || database instanceof SybaseASADatabase) {
                     output.write(StreamUtil.getLineSeparator());
                     output.write("GO");
+    //            } else if (database instanceof OracleDatabase) {
+    //                output.write(StreamUtil.getLineSeparator());
+    //                output.write("/");
                 } else {
                     String endDelimiter = ";";
                     String potentialDelimiter = null;
@@ -128,12 +128,9 @@ public class LoggingExecutor extends AbstractExecutor {
                     }
 
                     if (potentialDelimiter != null) {
-                        //ignore trailing $ as a regexp to determine if it should be output
-                        potentialDelimiter = potentialDelimiter.replaceFirst("\\$$", "");
+                        potentialDelimiter = potentialDelimiter.replaceFirst("\\$$", ""); //ignore trailing $ as a regexp to determine if it should be output
 
-                        if (potentialDelimiter.replaceAll("\\n", "\n")
-                                .replace("\\r", "\r")
-                                .matches("[;/\r\n\\w@\\-]+")) {
+                        if (potentialDelimiter.replaceAll("\\n", "\n").replace("\\r", "\r").matches("[;/\r\n\\w@\\-]+")) {
                             endDelimiter = potentialDelimiter;
                         }
                     }
@@ -163,8 +160,7 @@ public class LoggingExecutor extends AbstractExecutor {
     }
 
     @Override
-    public <T> T queryForObject(SqlStatement sql, Class<T> requiredType, List<SqlVisitor> sqlVisitors)
-            throws DatabaseException {
+    public <T> T queryForObject(SqlStatement sql, Class<T> requiredType, List<SqlVisitor> sqlVisitors) throws DatabaseException {
         return delegatedReadExecutor.queryForObject(sql, requiredType, sqlVisitors);
     }
 
@@ -183,8 +179,7 @@ public class LoggingExecutor extends AbstractExecutor {
         try {
             return delegatedReadExecutor.queryForInt(sql);
         } catch (DatabaseException e) {
-            // table probably does not exist
-            if (sql instanceof GetNextChangeSetSequenceValueStatement) {
+            if (sql instanceof GetNextChangeSetSequenceValueStatement) { //table probably does not exist
                 return 0;
             }
             throw e;
@@ -202,8 +197,7 @@ public class LoggingExecutor extends AbstractExecutor {
     }
 
     @Override
-    public List queryForList(SqlStatement sql, Class elementType, List<SqlVisitor> sqlVisitors)
-            throws DatabaseException {
+    public List queryForList(SqlStatement sql, Class elementType, List<SqlVisitor> sqlVisitors) throws DatabaseException {
         return delegatedReadExecutor.queryForList(sql, elementType, sqlVisitors);
     }
 

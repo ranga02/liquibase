@@ -2,6 +2,7 @@ package liquibase.snapshot;
 
 import liquibase.database.Database;
 import liquibase.exception.DatabaseException;
+import liquibase.exception.UnexpectedLiquibaseException;
 import liquibase.structure.DatabaseObject;
 import liquibase.structure.core.Column;
 import liquibase.structure.core.Relation;
@@ -9,6 +10,7 @@ import liquibase.structure.core.Relation;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.SortedSet;
 
 public class MockSnapshotGeneratorFactory extends SnapshotGeneratorFactory{
     private List<DatabaseObject> objects;

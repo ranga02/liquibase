@@ -47,7 +47,7 @@ public class Catalog extends AbstractDatabaseObject {
     }
 
     public boolean isDefault() {
-        return getAttribute("default", false) || (getName() == null);
+        return getAttribute("default", false);
     }
 
     public Catalog setDefault(Boolean isDefault) {
@@ -62,9 +62,9 @@ public class Catalog extends AbstractDatabaseObject {
     public <DatabaseObjectType extends DatabaseObject> List<DatabaseObjectType> getDatabaseObjects(Class<DatabaseObjectType> type) {
         Set<DatabaseObjectType> databaseObjects = (Set<DatabaseObjectType>) getObjects().get(type);
         if (databaseObjects == null) {
-            return new ArrayList<>();
+            return new ArrayList<DatabaseObjectType>();
         }
-        return new ArrayList<>(databaseObjects);
+        return new ArrayList<DatabaseObjectType>(databaseObjects);
     }
 
     public void addDatabaseObject(DatabaseObject databaseObject) {
@@ -73,7 +73,7 @@ public class Catalog extends AbstractDatabaseObject {
         }
         Set<DatabaseObject> objects = this.getObjects().get(databaseObject.getClass());
         if (objects == null) {
-            objects = new HashSet<>();
+            objects = new HashSet<DatabaseObject>();
             this.getObjects().put(databaseObject.getClass(), objects);
         }
         objects.add(databaseObject);
@@ -83,18 +83,20 @@ public class Catalog extends AbstractDatabaseObject {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if ((o == null) || (getClass() != o.getClass())) return false;
+        if (o == null || getClass() != o.getClass()) return false;
 
         Catalog catalog = (Catalog) o;
 
-        return (getName() != null) ? getName().equalsIgnoreCase(catalog.getName()) : (catalog.getName() == null);
+        if (getName() != null ? !getName().equalsIgnoreCase(catalog.getName()) : catalog.getName() != null) return false;
+
+        return true;
     }
 
 
 
     @Override
     public int hashCode() {
-        return (getName() != null) ? getName().hashCode() : 0;
+        return getName() != null ? getName().hashCode() : 0;
     }
 
     @Override

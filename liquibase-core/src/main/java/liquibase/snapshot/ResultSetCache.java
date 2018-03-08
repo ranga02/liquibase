@@ -4,7 +4,6 @@ import liquibase.database.Database;
 import liquibase.database.core.InformixDatabase;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.exception.DatabaseException;
-import liquibase.exception.UnexpectedLiquibaseException;
 import liquibase.executor.jvm.ColumnMapRowMapper;
 import liquibase.executor.jvm.RowMapperResultSetExtractor;
 import liquibase.util.JdbcUtils;
@@ -16,12 +15,12 @@ import java.sql.Statement;
 import java.util.*;
 
 class ResultSetCache {
-    private Map<String, Integer> timesSingleQueried = new HashMap<>();
-    private Map<String, Boolean> didBulkQuery = new HashMap<>();
+    private Map<String, Integer> timesSingleQueried = new HashMap<String, Integer>();
+    private Map<String, Boolean> didBulkQuery = new HashMap<String, Boolean>();
 
-    private Map<String, Map<String, List<CachedRow>>> cacheBySchema = new HashMap<>();
+    private Map<String, Map<String, List<CachedRow>>> cacheBySchema = new HashMap<String, Map<String, List<CachedRow>>>();
 
-    private Map<String, Object> info = new HashMap<>();
+    private Map<String, Object> info = new HashMap<String, Object>();
 
     public List<CachedRow> get(ResultSetExtractor resultSetExtractor) throws DatabaseException {
         try {
@@ -31,7 +30,7 @@ class ResultSetCache {
 
             Map<String, List<CachedRow>> cache = cacheBySchema.get(schemaKey);
             if (cache == null) {
-                cache = new HashMap<>();
+                cache = new HashMap<String, List<CachedRow>>();
                 cacheBySchema.put(schemaKey, cache);
             }
 
@@ -40,28 +39,16 @@ class ResultSetCache {
             }
 
             if (didBulkQuery.containsKey(schemaKey) && didBulkQuery.get(schemaKey)) {
-                return new ArrayList<>();
+                return new ArrayList<CachedRow>();
             }
 
             List<CachedRow> results;
-            boolean bulkQueried = false;
             if (resultSetExtractor.shouldBulkSelect(schemaKey, this)) {
-
-                //remove any existing single fetches that may be duplicated
-                if (resultSetExtractor.bulkContainsSchema(schemaKey)) {
-                    for (Map cachedValue : cacheBySchema.values()) {
-                        cachedValue.clear();
-                    }
-                } else {
-                    cache.clear();
-                }
-
+                cache.clear(); //remove any existing single fetches that may be duplicated
                 results = resultSetExtractor.bulkFetch();
                 didBulkQuery.put(schemaKey, true);
-                bulkQueried = true;
             } else {
-                // Don't store results in real cache to prevent confusion if later fetching all items.
-                cache = new HashMap<>();
+                cache = new HashMap<String, List<CachedRow>>(); //don't store results in real cache to prevent confusion if later fetching all items.
                 Integer previousCount = timesSingleQueried.get(schemaKey);
                 if (previousCount == null) {
                     previousCount = 0;
@@ -72,14 +59,6 @@ class ResultSetCache {
 
             for (CachedRow row : results) {
                 for (String rowKey : resultSetExtractor.rowKeyParameters(row).getKeyPermutations()) {
-                    if (bulkQueried && resultSetExtractor.bulkContainsSchema(schemaKey)) {
-                        String rowSchema = resultSetExtractor.getSchemaKey(row).toLowerCase();
-                        cache = cacheBySchema.get(rowSchema);
-                        if (cache == null) {
-                            cache = new HashMap<String, List<CachedRow>>();
-                            cacheBySchema.put(rowSchema, cache);
-                        }
-                    }
                     if (!cache.containsKey(rowKey)) {
                         cache.put(rowKey, new ArrayList<CachedRow>());
                     }
@@ -87,12 +66,9 @@ class ResultSetCache {
                 }
             }
 
-            if (bulkQueried) {
-                cache = cacheBySchema.get(schemaKey);
-            }
             List<CachedRow> returnList = cache.get(wantedKey);
             if (returnList == null) {
-                returnList = new ArrayList<>();
+                returnList = new ArrayList<CachedRow>();
             }
             return returnList;
 
@@ -108,14 +84,6 @@ class ResultSetCache {
 
     public void putInfo(String key, Object value) {
         info.put(key, value);
-    }
-
-    private int getTimesSingleQueried(String schemaKey) {
-        Integer integer = timesSingleQueried.get(schemaKey);
-        if (integer == null) {
-            return 0;
-        }
-        return integer;
     }
 
     public static class RowData {
@@ -149,13 +117,13 @@ class ResultSetCache {
         private String[] permute(String[] params, int fromIndex) {
             String[] nullVersion = Arrays.copyOf(params, params.length);
             nullVersion[fromIndex] = null;
-            if (params.length == (fromIndex + 1)) {
+            if (params.length == fromIndex + 1) {
                 return new String[]{
                         createKey(database, params),
                         createKey(database, nullVersion)
                 };
             } else {
-                List<String> permutations = new ArrayList<>();
+                List<String> permutations = new ArrayList<String>();
 
                 Collections.addAll(permutations, permute(params, fromIndex + 1));
                 Collections.addAll(permutations, permute(nullVersion, fromIndex + 1));
@@ -170,7 +138,7 @@ class ResultSetCache {
             } else if (database.supportsCatalogs() && database.supportsSchemas()) {
                 return (catalog + "." + schema).toLowerCase();
             } else {
-                if ((catalog == null) && (schema != null)) {
+                if (catalog == null && schema != null) {
                     return schema.toLowerCase();
                 } else {
                     if (catalog == null) {
@@ -194,44 +162,12 @@ class ResultSetCache {
         }
     }
 
-//    public abstract static class MultiSchemaRowData extends RowData {
-//        public MultiSchemaRowData(String catalog, String schema, Database database, String... parameters) {
-//            super(catalog, schema, database, parameters);
-//        }
-//
-//        @Override
-//        public String createSchemaKey(Database database) {
-//            String multiSchemaKey = getMultiSchemaKey();
-//
-//            if (multiSchemaKey == null) {
-//                return super.createSchemaKey(database);
-//            }
-//
-//            for (Class<? extends Database> supportedDb : getMultiSchemaSupportedDatabases()) {
-//                if (supportedDb.isAssignableFrom(database.getClass())) {
-//                    return multiSchemaKey;
-//                }
-//            }
-//            return super.createSchemaKey(database);
-//        }
-//
-//        public abstract Class<? extends Database>[] getMultiSchemaSupportedDatabases();
-//
-//        public abstract String getMultiSchemaKey();
-//    }
-
     public abstract static class ResultSetExtractor {
 
         private final Database database;
 
         public ResultSetExtractor(Database database) {
             this.database = database;
-        }
-
-        public abstract boolean bulkContainsSchema(String schemaKey);
-
-        public String getSchemaKey(CachedRow row) {
-            throw new UnexpectedLiquibaseException("Not Implemented");
         }
 
         boolean shouldBulkSelect(String schemaKey, ResultSetCache resultSetCache) {
@@ -242,10 +178,9 @@ class ResultSetCache {
             return executeAndExtract(sql, database, false);
         }
 
-        List<CachedRow> executeAndExtract(String sql, Database database, boolean informixTrimHint)
-                throws DatabaseException, SQLException {
+        List<CachedRow> executeAndExtract(String sql, Database database, boolean informixTrimHint) throws DatabaseException, SQLException {
             if (sql == null) {
-                return new ArrayList<>();
+                return new ArrayList<CachedRow>();
             }
             Statement statement = null;
             ResultSet resultSet = null;
@@ -265,10 +200,10 @@ class ResultSetCache {
         }
 
         public boolean equals(Object expectedValue, Object foundValue, boolean equalIfEitherNull) {
-            if ((expectedValue == null) && (foundValue == null)) {
+            if (expectedValue == null && foundValue == null) {
                 return true;
             }
-            if ((expectedValue == null) || (foundValue == null)) {
+            if (expectedValue == null || foundValue == null) {
                 return equalIfEitherNull;
             }
 
@@ -288,17 +223,16 @@ class ResultSetCache {
             return extract(resultSet, false);
         }
 
-        protected List<CachedRow> extract(ResultSet resultSet, final boolean informixIndexTrimHint)
-                throws SQLException {
+        protected List<CachedRow> extract(ResultSet resultSet, final boolean informixIndexTrimHint) throws SQLException {
             resultSet.setFetchSize(database.getFetchSize());
             List<Map> result;
-            List<CachedRow> returnList = new ArrayList<>();
+            List<CachedRow> returnList = new ArrayList<CachedRow>();
             try {
                 result = (List<Map>) new RowMapperResultSetExtractor(new ColumnMapRowMapper() {
                     @Override
                     protected Object getColumnValue(ResultSet rs, int index) throws SQLException {
                         Object value = super.getColumnValue(rs, index);
-                        if ((value != null) && (value instanceof String)) {
+                        if (value != null && value instanceof String) {
 
                             // Don't trim for informix database,
                             // We need to discern the space in front of an index name,
@@ -308,7 +242,7 @@ class ResultSetCache {
                                 value = ((String) value).trim(); // Trim the value normally
                             } else {
                                 boolean startsWithSpace = false;
-                                if ((database instanceof InformixDatabase) && ((String) value).matches("^ .*$")) {
+                                if (database instanceof InformixDatabase && ((String) value).matches("^ .*$")) {
                                     startsWithSpace = true; // Set the flag if the value started with a space
                                 }
                                 value = ((String) value).trim(); // Trim the value normally
@@ -330,6 +264,14 @@ class ResultSetCache {
             }
             return returnList;
         }
+    }
+
+    private int getTimesSingleQueried(String schemaKey) {
+        Integer integer = timesSingleQueried.get(schemaKey);
+        if (integer == null) {
+            return 0;
+        }
+        return integer;
     }
 
     public abstract static class SingleResultSetExtractor extends ResultSetExtractor {

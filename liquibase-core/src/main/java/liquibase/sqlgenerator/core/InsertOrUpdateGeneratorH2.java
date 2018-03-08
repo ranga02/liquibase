@@ -3,6 +3,7 @@ package liquibase.sqlgenerator.core;
 import liquibase.database.Database;
 import liquibase.database.core.H2Database;
 import liquibase.sqlgenerator.SqlGeneratorChain;
+import liquibase.sqlgenerator.core.InsertOrUpdateGenerator;
 import liquibase.statement.core.InsertOrUpdateStatement;
 
 import java.util.regex.Matcher;

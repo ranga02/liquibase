@@ -41,11 +41,11 @@ public class Column extends AbstractDatabaseObject {
         setDescending(columnConfig.getDescending());
         setType(new DataType(columnConfig.getType()));
 
-        if (columnConfig.getDefaultValueObject() != null) {
+        if (columnConfig.getDefaultValue() != null) {
             setDefaultValue(columnConfig.getDefaultValueObject());
         }
 
-        if ((columnConfig.isAutoIncrement() != null) && columnConfig.isAutoIncrement()) {
+        if (columnConfig.isAutoIncrement() != null && columnConfig.isAutoIncrement()) {
             setAutoIncrementInformation(new AutoIncrementInformation(columnConfig.getStartWith(), columnConfig.getIncrementBy()));
         }
 
@@ -148,18 +148,6 @@ public class Column extends AbstractDatabaseObject {
         return this;
     }
 
-
-    public String getDefaultValueConstraintName() {
-        return getAttribute("defaultValueConstraintName", String.class);
-    }
-
-    public Column setDefaultValueConstraintName(String defaultValueConstraintName) {
-        setAttribute("defaultValueConstraintName", defaultValueConstraintName);
-
-        return this;
-    }
-
-
     public boolean isAutoIncrement() {
         return getAutoIncrementInformation() != null;
     }
@@ -197,7 +185,7 @@ public class Column extends AbstractDatabaseObject {
             return getName() + (getDescending() != null && getDescending() ? " DESC" : "");
         } else {
             String tableOrViewName = getRelation().getName();
-            if ((getRelation().getSchema() != null) && (getRelation().getSchema().getName() != null)) {
+            if (getRelation().getSchema() != null && getRelation().getSchema().getName() != null) {
                 tableOrViewName = getRelation().getSchema().getName()+"."+tableOrViewName;
             }
             return tableOrViewName + "." + getName();
@@ -211,14 +199,13 @@ public class Column extends AbstractDatabaseObject {
         try {
             //noinspection UnusedAssignment
             int returnValue = 0;
-            if ((this.getRelation() != null) && (o.getRelation() == null)) {
+            if (this.getRelation() != null && o.getRelation() == null) {
                 return 1;
-            } else if ((this.getRelation() == null) && (o.getRelation() != null)) {
+            } else if (this.getRelation() == null && o.getRelation() != null) {
                 return -1;
             } else {
                 returnValue = this.getRelation().compareTo(o.getRelation());
-                if ((returnValue == 0) && (this.getRelation().getSchema() != null) && (o.getRelation().getSchema() !=
-                    null)) {
+                if (returnValue == 0 && this.getRelation().getSchema() != null && o.getRelation().getSchema() != null) {
                     returnValue = StringUtils.trimToEmpty(this.getSchema().getName()).compareTo(StringUtils.trimToEmpty(o.getRelation().getSchema().getName()));
                 }
             }
@@ -238,7 +225,7 @@ public class Column extends AbstractDatabaseObject {
     public boolean equals(Object o) {
         try {
             if (this == o) return true;
-            if ((o == null) || (getClass() != o.getClass())) return false;
+            if (o == null || getClass() != o.getClass()) return false;
 
             Column column = (Column) o;
 
@@ -264,13 +251,13 @@ public class Column extends AbstractDatabaseObject {
 
     @SuppressWarnings({"SimplifiableIfStatement"})
     public boolean isNullabilityDifferent(Column otherColumn) {
-        if ((this.isNullable() == null) && (otherColumn.isNullable() == null)) {
+        if (this.isNullable() == null && otherColumn.isNullable() == null) {
             return false;
         }
-        if ((this.isNullable() == null) && (otherColumn.isNullable() != null)) {
+        if (this.isNullable() == null && otherColumn.isNullable() != null) {
             return true;
         }
-        if ((this.isNullable() != null) && (otherColumn.isNullable() == null)) {
+        if (this.isNullable() != null && otherColumn.isNullable() == null) {
             return true;
         }
         return !this.isNullable().equals(otherColumn.isNullable());
@@ -370,8 +357,8 @@ public class Column extends AbstractDatabaseObject {
         }
 
         public AutoIncrementInformation(Number startWith, Number incrementBy) {
-            this.startWith = (startWith == null) ? null : BigInteger.valueOf(startWith.longValue());
-            this.incrementBy = (incrementBy == null) ? null : BigInteger.valueOf(incrementBy.longValue());
+            this.startWith = startWith == null ? null : BigInteger.valueOf(startWith.longValue());
+            this.incrementBy = incrementBy == null ? null : BigInteger.valueOf(incrementBy.longValue());
         }
 
         public BigInteger getStartWith() {

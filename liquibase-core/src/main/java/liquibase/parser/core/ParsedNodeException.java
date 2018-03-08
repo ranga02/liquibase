@@ -1,8 +1,6 @@
 package liquibase.parser.core;
 
 public class ParsedNodeException extends Exception {
-    private static final long serialVersionUID = -7841445953043527911L;
-    
     public ParsedNodeException(String message) {
         super(message);
     }

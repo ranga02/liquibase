@@ -2,14 +2,13 @@ package liquibase.change.core;
 
 import liquibase.change.*;
 import liquibase.database.Database;
-import liquibase.database.core.Db2zDatabase;
 import liquibase.database.core.DerbyDatabase;
 import liquibase.database.core.SQLiteDatabase;
 import liquibase.database.core.SQLiteDatabase.AlterTableVisitor;
-import liquibase.statement.SqlStatement;
-import liquibase.statement.core.RawSqlStatement;
 import liquibase.structure.core.Column;
 import liquibase.structure.core.Index;
+import liquibase.statement.SqlStatement;
+import liquibase.statement.core.RawSqlStatement;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,7 +31,7 @@ public class MergeColumnChange extends AbstractChange {
 
     @Override
     public boolean supports(Database database) {
-        return super.supports(database) && !(database instanceof DerbyDatabase) && !(database instanceof Db2zDatabase);
+        return super.supports(database) && !(database instanceof DerbyDatabase);
     }
 
     public String getCatalogName() {
@@ -115,7 +114,7 @@ public class MergeColumnChange extends AbstractChange {
 
     @Override
     public SqlStatement[] generateStatements(Database database) {
-        List<SqlStatement> statements = new ArrayList<>();
+        List<SqlStatement> statements = new ArrayList<SqlStatement>();
 
         AddColumnChange addNewColumnChange = new AddColumnChange();
         addNewColumnChange.setSchemaName(schemaName);

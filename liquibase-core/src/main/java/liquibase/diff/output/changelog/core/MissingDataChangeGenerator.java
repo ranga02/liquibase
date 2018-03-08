@@ -18,9 +18,7 @@ import liquibase.structure.DatabaseObject;
 import liquibase.structure.core.*;
 import liquibase.util.JdbcUtils;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -67,12 +65,12 @@ public class MissingDataChangeGenerator extends AbstractChangeGenerator implemen
             stmt.setFetchSize(1000);
             rs = stmt.executeQuery(sql);
 
-            List<String> columnNames = new ArrayList<>();
+            List<String> columnNames = new ArrayList<String>();
             for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {
                 columnNames.add(rs.getMetaData().getColumnName(i + 1));
             }
 
-            List<Change> changes = new ArrayList<>();
+            List<Change> changes = new ArrayList<Change>();
             while (rs.next()) {
                 InsertDataChange change = new InsertDataChange();
                 if (outputControl.getIncludeCatalog()) {

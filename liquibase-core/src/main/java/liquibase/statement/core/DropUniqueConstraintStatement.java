@@ -2,6 +2,7 @@ package liquibase.statement.core;
 
 import liquibase.change.ColumnConfig;
 import liquibase.statement.AbstractSqlStatement;
+import liquibase.structure.core.Column;
 
 public class DropUniqueConstraintStatement extends AbstractSqlStatement {
 

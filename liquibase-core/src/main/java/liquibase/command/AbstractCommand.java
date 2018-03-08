@@ -1,19 +1,8 @@
 package liquibase.command;
 
-import liquibase.servicelocator.PrioritizedService;
+public abstract class AbstractCommand implements LiquibaseCommand {
 
-public abstract class AbstractCommand<T extends CommandResult> implements LiquibaseCommand<T> {
-
-    @Override
-    public int getPriority(String commandName) {
-        if ((commandName != null) && commandName.equalsIgnoreCase(getName())) {
-            return PrioritizedService.PRIORITY_DEFAULT;
-        } else {
-            return -1;
-        }
-    }
-
-    public final T execute() throws CommandExecutionException {
+    public final Object execute() throws CommandExecutionException {
         this.validate();
         try {
             return this.run();
@@ -26,5 +15,5 @@ public abstract class AbstractCommand<T extends CommandResult> implements Liquib
         }
     }
 
-    protected abstract T run() throws Exception;
+    protected abstract Object run() throws Exception;
 }

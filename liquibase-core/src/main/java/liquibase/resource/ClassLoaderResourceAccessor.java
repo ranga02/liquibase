@@ -2,8 +2,7 @@ package liquibase.resource;
 
 import liquibase.configuration.GlobalConfiguration;
 import liquibase.configuration.LiquibaseConfiguration;
-import liquibase.logging.LogService;
-import liquibase.logging.LogType;
+import liquibase.logging.LogFactory;
 import liquibase.util.StringUtils;
 import liquibase.util.SpringBootFatJar;
 
@@ -34,18 +33,18 @@ public class ClassLoaderResourceAccessor extends AbstractResourceAccessor {
     @Override
     public Set<InputStream> getResourcesAsStream(String path) throws IOException {
         Enumeration<URL> resources = classLoader.getResources(path);
-        if ((resources == null) || !resources.hasMoreElements()) {
+        if (resources == null || !resources.hasMoreElements()) {
             return null;
         }
-        Set<String> seenUrls = new HashSet<>();
-        Set<InputStream> returnSet = new HashSet<>();
+        Set<String> seenUrls = new HashSet<String>();
+        Set<InputStream> returnSet = new HashSet<InputStream>();
         while (resources.hasMoreElements()) {
             URL url = resources.nextElement();
             if (seenUrls.contains(url.toExternalForm())) {
                 continue;
             }
             seenUrls.add(url.toExternalForm());
-            LogService.getLog(getClass()).debug(LogType.LOG, "Opening "+url.toExternalForm()+" as "+path);
+            LogFactory.getInstance().getLog().debug("Opening "+url.toExternalForm()+" as "+path);
 
             URLConnection connection = url.openConnection();
             connection.setUseCaches(false);
@@ -64,10 +63,10 @@ public class ClassLoaderResourceAccessor extends AbstractResourceAccessor {
 
         Enumeration<URL> fileUrls = classLoader.getResources(path);
 
-        Set<String> returnSet = new HashSet<>();
+        Set<String> returnSet = new HashSet<String>();
 
         if (!fileUrls.hasMoreElements() && (path.startsWith("jar:") || path.startsWith("file:") || path.startsWith("wsjar:file:") || path.startsWith("zip:"))) {
-            fileUrls = new Vector<>(Arrays.asList(new URL(path))).elements();
+            fileUrls = new Vector<URL>(Arrays.asList(new URL(path))).elements();
         }
 
         while (fileUrls.hasMoreElements()) {
@@ -136,7 +135,9 @@ public class ClassLoaderResourceAccessor extends AbstractResourceAccessor {
                     if (file.exists()) {
                         getContents(file, recursive, includeFiles, includeDirectories, path, returnSet);
                     }
-                } catch (URISyntaxException | IllegalArgumentException e) {
+                } catch (URISyntaxException e) {
+                    //not a local file
+                } catch (IllegalArgumentException e) {
                     //not a local file
                 }
             }
@@ -150,7 +151,7 @@ public class ClassLoaderResourceAccessor extends AbstractResourceAccessor {
             }
         }
 
-        if (returnSet.isEmpty()) {
+        if (returnSet.size() == 0) {
             return null;
         }
         return returnSet;
@@ -165,7 +166,7 @@ public class ClassLoaderResourceAccessor extends AbstractResourceAccessor {
     public String toString() {
         String description;
         if (classLoader instanceof URLClassLoader) {
-            List<String> urls = new ArrayList<>();
+            List<String> urls = new ArrayList<String>();
             for (URL url : ((URLClassLoader) classLoader).getURLs()) {
                 urls.add(url.toExternalForm());
             }

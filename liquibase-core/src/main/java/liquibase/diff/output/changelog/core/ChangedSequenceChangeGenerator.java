@@ -37,7 +37,7 @@ public class ChangedSequenceChangeGenerator extends AbstractChangeGenerator impl
     public Change[] fixChanged(DatabaseObject changedObject, ObjectDifferences differences, DiffOutputControl control, Database referenceDatabase, Database comparisonDatabase, ChangeGeneratorChain chain) {
         Sequence sequence = (Sequence) changedObject;
 
-        List<Change> changes = new ArrayList<>();
+        List<Change> changes = new ArrayList<Change>();
 
         if (differences.isDifferent("incrementBy")) {
             AlterSequenceChange change = createAlterSequenceChange(sequence, control);
@@ -69,7 +69,7 @@ public class ChangedSequenceChangeGenerator extends AbstractChangeGenerator impl
             changes.add(change);
         }
 
-        if (changes.isEmpty()) {
+        if (changes.size() == 0) {
             return null;
         } else {
             return changes.toArray(new Change[changes.size()]);

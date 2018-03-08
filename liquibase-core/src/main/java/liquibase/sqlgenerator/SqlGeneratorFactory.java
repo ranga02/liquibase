@@ -3,12 +3,12 @@ package liquibase.sqlgenerator;
 import liquibase.change.Change;
 import liquibase.database.Database;
 import liquibase.exception.UnexpectedLiquibaseException;
+import liquibase.structure.DatabaseObject;
 import liquibase.exception.ValidationErrors;
 import liquibase.exception.Warnings;
 import liquibase.servicelocator.ServiceLocator;
 import liquibase.sql.Sql;
 import liquibase.statement.SqlStatement;
-import liquibase.structure.DatabaseObject;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -23,11 +23,13 @@ import java.util.*;
 public class SqlGeneratorFactory {
 
     private static SqlGeneratorFactory instance;
+
+    private List<SqlGenerator> generators = new ArrayList<SqlGenerator>();
+
     //caches for expensive reflection based calls that slow down Liquibase initialization: CORE-1207
-    private final Map<Class<?>, Type[]> genericInterfacesCache = new HashMap<>();
-    private final Map<Class<?>, Type> genericSuperClassCache = new HashMap<>();
-    private List<SqlGenerator> generators = new ArrayList<>();
-    private Map<String, SortedSet<SqlGenerator>> generatorsByKey = new HashMap<>();
+    private final Map<Class<?>, Type[]> genericInterfacesCache = new HashMap<Class<?>, Type[]>();
+    private final Map<Class<?>, Type> genericSuperClassCache = new HashMap<Class<?>, Type>();
+    private Map<String, SortedSet<SqlGenerator>> generatorsByKey = new HashMap<String, SortedSet<SqlGenerator>>();
 
     private SqlGeneratorFactory() {
         Class[] classes;
@@ -97,7 +99,7 @@ public class SqlGeneratorFactory {
         } else {
             try {
                 version = database.getDatabaseMajorVersion();
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 version = 0;
             }
         }
@@ -108,7 +110,7 @@ public class SqlGeneratorFactory {
             return generatorsByKey.get(key);
         }
 
-        SortedSet<SqlGenerator> validGenerators = new TreeSet<>(new SqlGeneratorComparator());
+        SortedSet<SqlGenerator> validGenerators = new TreeSet<SqlGenerator>(new SqlGeneratorComparator());
 
         for (SqlGenerator generator : getGenerators()) {
             Class clazz = generator.getClass();
@@ -185,7 +187,7 @@ public class SqlGeneratorFactory {
 
     private SqlGeneratorChain createGeneratorChain(SqlStatement statement, Database database) {
         SortedSet<SqlGenerator> sqlGenerators = getGenerators(statement, database);
-        if ((sqlGenerators == null) || sqlGenerators.isEmpty()) {
+        if (sqlGenerators == null || sqlGenerators.size() == 0) {
             return null;
         }
         //noinspection unchecked
@@ -202,11 +204,11 @@ public class SqlGeneratorFactory {
     }
 
     public Sql[] generateSql(SqlStatement[] statements, Database database) {
-        List<Sql> returnList = new ArrayList<>();
+        List<Sql> returnList = new ArrayList<Sql>();
         SqlGeneratorFactory factory = SqlGeneratorFactory.getInstance();
         for (SqlStatement statement : statements) {
             Sql[] sqlArray = factory.generateSql(statement, database);
-            if ((sqlArray != null) && (sqlArray.length > 0)) {
+            if (sqlArray != null && sqlArray.length > 0) {
               List<Sql> sqlList = Arrays.asList(sqlArray);
               returnList.addAll(sqlList);
             }
@@ -246,7 +248,7 @@ public class SqlGeneratorFactory {
     }
 
     public boolean supports(SqlStatement statement, Database database) {
-        return !getGenerators(statement, database).isEmpty();
+        return getGenerators(statement, database).size() > 0;
     }
 
     public ValidationErrors validate(SqlStatement statement, Database database) {
@@ -264,7 +266,7 @@ public class SqlGeneratorFactory {
     }
 
     public Set<DatabaseObject> getAffectedDatabaseObjects(SqlStatement statement, Database database) {
-        Set<DatabaseObject> affectedObjects = new HashSet<>();
+        Set<DatabaseObject> affectedObjects = new HashSet<DatabaseObject>();
 
         SqlGeneratorChain sqlGeneratorChain = createGeneratorChain(statement, database);
         if (sqlGeneratorChain != null) {

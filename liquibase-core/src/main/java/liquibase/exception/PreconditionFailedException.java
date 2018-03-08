@@ -1,15 +1,14 @@
 package liquibase.exception;
 
 import liquibase.changelog.DatabaseChangeLog;
-import liquibase.precondition.FailedPrecondition;
 import liquibase.precondition.Precondition;
+import liquibase.precondition.FailedPrecondition;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Thrown when a precondition failed. This is NOT the same as a PreconditionErrorException: A failure just means that
- * the specified condition evaluated to "does not apply".
+ * Thrown when a precondition failed.
  */
 public class PreconditionFailedException extends Exception {
 
@@ -22,7 +21,7 @@ public class PreconditionFailedException extends Exception {
 
     public PreconditionFailedException(FailedPrecondition failedPrecondition) {
         super("Preconditions Failed");
-        this.failedPreconditions = new ArrayList<>();
+        this.failedPreconditions = new ArrayList<FailedPrecondition>();
         failedPreconditions.add(failedPrecondition);
     }
 

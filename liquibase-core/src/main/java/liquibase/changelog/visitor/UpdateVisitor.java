@@ -9,8 +9,7 @@ import liquibase.database.Database;
 import liquibase.database.ObjectQuotingStrategy;
 import liquibase.exception.LiquibaseException;
 import liquibase.exception.MigrationFailedException;
-import liquibase.logging.LogService;
-import liquibase.logging.LogType;
+import liquibase.logging.LogFactory;
 import liquibase.logging.Logger;
 
 import java.util.Set;
@@ -19,9 +18,12 @@ public class UpdateVisitor implements ChangeSetVisitor {
 
     private Database database;
 
-    private Logger log = LogService.getLog(getClass());
+    private Logger log = LogFactory.getLogger();
     
     private ChangeExecListener execListener;
+
+    //@TODO : APPDBD - capture any failures in the changeSet
+    private boolean hasAFailure = false;
 
     /**
      * @deprecated - please use the constructor with ChangeExecListener, which can be null.
@@ -42,10 +44,9 @@ public class UpdateVisitor implements ChangeSetVisitor {
     }
 
     @Override
-    public void visit(ChangeSet changeSet, DatabaseChangeLog databaseChangeLog, Database database,
-                      Set<ChangeSetFilterResult> filterResults) throws LiquibaseException {
+    public void visit(ChangeSet changeSet, DatabaseChangeLog databaseChangeLog, Database database, Set<ChangeSetFilterResult> filterResults) throws LiquibaseException {
         ChangeSet.RunStatus runStatus = this.database.getRunStatus(changeSet);
-        log.debug(LogType.LOG, "Running Changeset:" + changeSet);
+        log.debug("Running Changeset:" + changeSet);
         fireWillRun(changeSet, databaseChangeLog, database, runStatus);
         ExecType execType = null;
         ObjectQuotingStrategy previousStr = this.database.getObjectQuotingStrategy();
@@ -55,6 +56,12 @@ public class UpdateVisitor implements ChangeSetVisitor {
             fireRunFailed(changeSet, databaseChangeLog, database, e);
             throw e;
         }
+
+        //@TODO : APPDBD - record any failures in the changeset
+        if (execType == ExecType.FAILED) {
+            hasAFailure = true;
+        }
+
         if (!runStatus.equals(ChangeSet.RunStatus.NOT_RAN)) {
             execType = ChangeSet.ExecType.RERAN;
         }
@@ -82,5 +89,10 @@ public class UpdateVisitor implements ChangeSetVisitor {
       if (execListener != null) {
         execListener.ran(changeSet, databaseChangeLog, database, execType);
       }
+    }
+
+    //@TODO : APPDBD - return failure status of changeset
+    public boolean hasAFailure() {
+        return hasAFailure;
     }
 }

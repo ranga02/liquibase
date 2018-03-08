@@ -8,8 +8,7 @@ import liquibase.diff.output.changelog.AbstractChangeGenerator;
 import liquibase.diff.output.changelog.ChangeGeneratorChain;
 import liquibase.diff.output.changelog.UnexpectedObjectChangeGenerator;
 import liquibase.structure.DatabaseObject;
-import liquibase.structure.core.ForeignKey;
-import liquibase.structure.core.Index;
+import liquibase.structure.core.*;
 
 public class UnexpectedIndexChangeGenerator extends AbstractChangeGenerator implements UnexpectedObjectChangeGenerator {
     @Override

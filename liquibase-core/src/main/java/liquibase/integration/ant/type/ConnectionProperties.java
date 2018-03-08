@@ -12,8 +12,8 @@ public class ConnectionProperties {
     private List<Property> properties;
 
     public ConnectionProperties() {
-        propertySets = new LinkedList<>();
-        properties = new LinkedList<>();
+        propertySets = new LinkedList<PropertySet>();
+        properties = new LinkedList<Property>();
     }
 
     public Properties buildProperties() {
