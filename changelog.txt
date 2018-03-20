@@ -3,6 +3,7 @@ Liquibase Core Changelog
 
 Changes in version 3.5.5.3 (2018.03.06)
 - print statement output will have "SQLOUT" preceeding it
+- stripComments is defaulted to false
 
 Changes in version 3.5.5.2 (2018.03.06)
 
